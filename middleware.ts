@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   /^\/api\/accept-invite\//,
   /^\/api\/auth\//,
   /^\/api\/cron\//,
+  /^\/api\/whatsapp\//,
 ];
 
 export default auth((req) => {

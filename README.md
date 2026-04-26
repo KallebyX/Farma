@@ -1,6 +1,11 @@
 # Farma
 
-Plataforma de adesão a tratamento e farmacovigilância para farmácias. Esta primeira release entrega o fluxo de **convite de membros da equipe** end-to-end: criação, entrega multi-canal (email, WhatsApp, link copiável), página de aceite com termos LGPD, e gestão de pendentes (reenviar / revogar / expirar).
+Plataforma de adesão a tratamento e farmacovigilância para farmácias. Esta release entrega:
+
+- **Convite de membros da equipe** end-to-end (email, WhatsApp, link copiável; aceite com LGPD; reenvio/revogação)
+- **Cadastro de paciente + prescrição + lembretes via WhatsApp** (consentimento, posologia por intervalo OU horários fixos, scheduler que materializa e dispatcha lembretes a cada 5 minutos via Vercel Cron, follow-up de confirmação tardia, eventos de adesão)
+- **Inbox de RAM** (reação adversa) com fluxo conversacional no WhatsApp + revisão clínica + simulação de submissão ao VigiMed (protocolo placeholder)
+- **Catálogo de medicamentos** com busca e princípio ativo + detentor do registro (preparação para analytics de laboratório)
 
 ## Stack
 

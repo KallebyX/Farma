@@ -11,12 +11,19 @@ export default async function DashboardPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/sign-in");
 
-  const [pharmacy, user, memberCount, pendingInvites] = await Promise.all([
+  const [pharmacy, user, memberCount, pendingInvites, patientCount, ramPending] = await Promise.all([
     prisma.pharmacy.findUnique({ where: { id: ctx.pharmacyId } }),
     prisma.user.findUnique({ where: { id: ctx.userId } }),
     prisma.membership.count({ where: { pharmacyId: ctx.pharmacyId, status: "ACTIVE" } }),
     prisma.invitation.count({
       where: { pharmacyId: ctx.pharmacyId, status: "PENDING" },
+    }),
+    prisma.patient.count({ where: { pharmacyId: ctx.pharmacyId, status: "ACTIVE" } }),
+    prisma.rAMReport.count({
+      where: {
+        patient: { pharmacyId: ctx.pharmacyId },
+        status: "PENDING_REVIEW",
+      },
     }),
   ]);
 
@@ -47,21 +54,33 @@ export default async function DashboardPage() {
           </form>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <StatCard label="Membros ativos" value={memberCount} />
-          <StatCard label="Convites pendentes" value={pendingInvites} />
+        <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard label="Pacientes ativos" value={patientCount} />
+          <StatCard label="RAMs pendentes" value={ramPending} />
+          <StatCard label="Membros" value={memberCount} />
+          <StatCard label="Convites" value={pendingInvites} />
         </div>
 
-        <div className="mt-8">
-          <Link
-            href="/settings/team"
-            className="inline-flex items-center rounded-md bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
-          >
-            Gerenciar equipe →
-          </Link>
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <NavCard href="/patients" title="Pacientes" desc="Cadastro, lembretes e histórico" />
+          <NavCard href="/ram" title="Inbox de RAM" desc="Reações adversas para revisão" />
+          <NavCard href="/catalog" title="Catálogo" desc="Medicamentos da base" />
+          <NavCard href="/settings/team" title="Equipe" desc="Membros e convites" />
         </div>
       </div>
     </main>
+  );
+}
+
+function NavCard({ href, title, desc }: { href: string; title: string; desc: string }) {
+  return (
+    <Link
+      href={href}
+      className="block rounded-xl border border-slate-200 bg-white p-5 hover:border-brand-300 transition"
+    >
+      <p className="text-sm font-semibold text-brand-800">{title} →</p>
+      <p className="mt-1 text-xs text-slate-500">{desc}</p>
+    </Link>
   );
 }
 

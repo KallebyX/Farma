@@ -49,6 +49,7 @@ model Pharmacy {
 
   members     Membership[]
   invitations Invitation[]
+  patients    Patient[]
 }
 
 model User {
@@ -65,6 +66,9 @@ model User {
   invitedBy    Invitation[] @relation("InvitedBy")
   acceptedBy   Invitation[] @relation("AcceptedBy")
   sessions     Session[]
+  patientsCreated      Patient[]      @relation("PatientCreatedBy")
+  prescriptionsCreated Prescription[] @relation("PrescriptionCreatedBy")
+  ramReviewed          RAMReport[]    @relation("RAMReviewedBy")
 }
 
 model Session {
@@ -133,4 +137,252 @@ model InvitationDelivery {
   invitation Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
 
   @@index([invitationId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Medication catalog (shared across all tenants)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum DosageForm {
+  TABLET
+  CAPSULE
+  LIQUID
+  DROPS
+  INJECTION
+  CREAM
+  OINTMENT
+  INHALER
+  PATCH
+  OTHER
+}
+
+model MedicationCatalog {
+  id                 String     @id @default(uuid())
+  activeIngredient   String
+  brandName          String
+  dosage             String     // e.g. "50mg", "10mg/ml"
+  form               DosageForm
+  manufacturerName   String?
+  manufacturerCnpj   String?    // detentor do registro (key for lab analytics)
+  anvisaCode         String?
+  ean                String?
+  therapeuticClass   String?
+  createdAt          DateTime   @default(now())
+
+  prescriptions Prescription[]
+
+  @@index([activeIngredient])
+  @@index([brandName])
+  @@unique([brandName, dosage, form, manufacturerCnpj])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Patient (identity + clinical, separated to support k-anonymized lab exports)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PatientStatus {
+  ACTIVE
+  PAUSED
+  WITHDRAWN
+}
+
+model Patient {
+  id          String        @id @default(uuid())
+  pharmacyId  String
+  // identity (RESTRICTED — separates from clinical data for anonymization)
+  name        String
+  cpf         String?       // optional; some patients won't share
+  phone       String        // E.164, used for WhatsApp
+  birthDate   DateTime?
+  // clinical (less sensitive in isolation; useful for cohort queries)
+  sex         String?       // M | F | O | null
+  comorbidities String[]    @default([])
+  notes       String?
+  status      PatientStatus @default(ACTIVE)
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  pharmacy      Pharmacy        @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+  createdBy     User            @relation("PatientCreatedBy", fields: [createdById], references: [id])
+  prescriptions Prescription[]
+  consents      PatientConsent[]
+  ramReports    RAMReport[]
+
+  @@unique([pharmacyId, phone])
+  @@index([pharmacyId, status])
+  @@index([phone])
+}
+
+enum ConsentScope {
+  SERVICE        // base obrigatória — lembretes + RAM
+  ANONYMIZED_RESEARCH  // optional — uso anonimizado para pesquisa/laboratório
+}
+
+model PatientConsent {
+  id           String       @id @default(uuid())
+  patientId    String
+  scope        ConsentScope
+  granted      Boolean
+  termsVersion String
+  capturedAt   DateTime     @default(now())
+  source       String?      // "whatsapp" | "panel" | "qr"
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, scope])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Prescription = a medication + posology assigned to a patient
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PrescriptionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+model Prescription {
+  id              String              @id @default(uuid())
+  patientId       String
+  medicationId    String
+  // posology fields (interpreted by lib/prescriptions/posology.ts)
+  doseAmount      String              // "1 comprimido", "10 gotas"
+  intervalHours   Int?                // when fixed-interval (e.g. 8h, 12h, 24h)
+  fixedTimes      String[]            @default([])  // "HH:mm" entries; if set, overrides intervalHours
+  durationDays    Int?                // null = continuous treatment
+  instructions    String?             // "em jejum", "30min antes da refeição"
+  startDate       DateTime
+  endDate         DateTime?           // computed if durationDays set
+  quantityDispensed Int?              // number of units bought; for "remédio acabando" calc
+  prescriber      String?             // doctor name; optional
+  status          PrescriptionStatus  @default(ACTIVE)
+  pausedReason    String?
+  createdById     String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  patient        Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  medication     MedicationCatalog  @relation(fields: [medicationId], references: [id])
+  createdBy      User               @relation("PrescriptionCreatedBy", fields: [createdById], references: [id])
+  reminders      ReminderJob[]
+  adherence      AdherenceEvent[]
+  ramReports     RAMReport[]
+
+  @@index([patientId, status])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scheduler: ReminderJob = a single scheduled WhatsApp reminder occurrence
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ReminderStatus {
+  PENDING       // scheduled but not yet dispatched
+  DISPATCHED    // sent to WhatsApp
+  CONFIRMED     // patient said "Tomei"
+  DEFERRED      // patient said "Adiar"
+  REFUSED       // patient said "Não vou tomar"
+  MISSED        // window elapsed without confirmation
+  CANCELLED     // prescription paused/cancelled before dispatch
+}
+
+model ReminderJob {
+  id             String         @id @default(uuid())
+  prescriptionId String
+  scheduledFor   DateTime
+  dispatchedAt   DateTime?
+  respondedAt    DateTime?
+  status         ReminderStatus @default(PENDING)
+  whatsappId     String?        // provider message ID
+  refusalReason  String?
+  createdAt      DateTime       @default(now())
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledFor])
+  @@index([prescriptionId, scheduledFor])
+}
+
+// AdherenceEvent: durable record of patient response (one per ReminderJob terminal state)
+enum AdherenceOutcome {
+  TAKEN
+  REFUSED
+  MISSED
+  TAKEN_LATE
+}
+
+model AdherenceEvent {
+  id             String           @id @default(uuid())
+  prescriptionId String
+  scheduledFor   DateTime
+  respondedAt    DateTime?
+  outcome        AdherenceOutcome
+  reason         String?
+  createdAt      DateTime         @default(now())
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([prescriptionId, scheduledFor])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RAM (Reação Adversa a Medicamento) — pharmacovigilance reports
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum RAMSeverity {
+  MILD
+  MODERATE
+  SEVERE
+}
+
+enum RAMStatus {
+  PENDING_REVIEW
+  REVIEWED
+  FORWARDED_VIGIMED
+  CLOSED
+}
+
+model RAMReport {
+  id             String       @id @default(uuid())
+  patientId      String
+  prescriptionId String?      // suspected medication; nullable for free-text reports
+  symptoms       String[]     // selected from list + free text
+  freeText       String?
+  startedAt      DateTime?
+  severity       RAMSeverity
+  outcome        String?      // "continued" | "suspended" | "other"
+  status         RAMStatus    @default(PENDING_REVIEW)
+  reviewedById   String?
+  reviewNotes    String?
+  vigimedProtocol String?
+  forwardedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  prescription Prescription? @relation(fields: [prescriptionId], references: [id])
+  reviewedBy   User?         @relation("RAMReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([status, createdAt])
+  @@index([patientId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bot conversation state (one per patient phone)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model BotConversation {
+  id          String   @id @default(uuid())
+  pharmacyId  String
+  patientId   String?  // null until consent is captured
+  phone       String   // E.164, key for inbound routing
+  state       String   @default("idle") // idle | awaiting_consent | ram_intake_* | etc
+  context     Json     @default("{}")
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@unique([phone])
+  @@index([state])
 }
