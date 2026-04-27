@@ -1,0 +1,94 @@
+name: DB Deploy (push schema + seed)
+
+# Manually triggered DB lifecycle: apply Prisma schema and (optionally) run
+# the seed script against a configured Postgres. Useful for environments
+# where the developer doesn't have direct network access to the database
+# (e.g., cloud-only Claude Code, restricted office networks).
+#
+# Required repo secrets:
+#   PROD_DATABASE_URL    pooler/runtime URL
+#   PROD_DIRECT_URL      direct URL (port 5432) — used for migrations
+#
+# Optional repo secrets (used when seeding):
+#   DEMO_PASSWORD          shared password for the 5 demo users
+#   PROD_OWNER_EMAIL       your personal OWNER email
+#   PROD_OWNER_NAME        your personal OWNER display name
+#   PROD_OWNER_PASSWORD    your personal OWNER password
+#   PROD_OWNER_CRF         (optional) CRF identifier
+
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "Run seed after schema push"
+        type: boolean
+        default: true
+      accept_data_loss:
+        description: "Allow destructive schema changes (db push --accept-data-loss). DESTRUCTIVE — only enable for first apply or known schema breaks."
+        type: boolean
+        default: false
+
+concurrency:
+  group: db-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: push schema · ${{ inputs.seed && 'seed' || 'no seed' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.PROD_DIRECT_URL }}
+      DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
+      OWNER_EMAIL: ${{ secrets.PROD_OWNER_EMAIL }}
+      OWNER_NAME: ${{ secrets.PROD_OWNER_NAME }}
+      OWNER_PASSWORD: ${{ secrets.PROD_OWNER_PASSWORD }}
+      OWNER_CRF: ${{ secrets.PROD_OWNER_CRF }}
+
+    steps:
+      - name: Refuse to run without a database URL
+        if: ${{ env.DATABASE_URL == '' || env.DIRECT_URL == '' }}
+        run: |
+          echo "::error::PROD_DATABASE_URL and PROD_DIRECT_URL must be set as repo secrets."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
+      - name: Push schema
+        run: |
+          if [ "${{ inputs.accept_data_loss }}" = "true" ]; then
+            pnpm prisma db push --accept-data-loss
+          else
+            pnpm prisma db push
+          fi
+
+      - name: Seed database
+        if: ${{ inputs.seed }}
+        run: pnpm prisma db seed
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## DB Deploy summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Schema push: completed" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.seed }}" = "true" ]; then
+            echo "- Seed: completed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- Seed: skipped" >> $GITHUB_STEP_SUMMARY
+          fi

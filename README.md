@@ -25,13 +25,28 @@ pnpm install
 cp .env.example .env.local
 # Preencha DATABASE_URL, DIRECT_URL, NEXTAUTH_SECRET (openssl rand -base64 32), RESEND_API_KEY
 pnpm prisma migrate dev   # cria schema no Postgres
-pnpm prisma db seed       # cria farmácia demo + OWNER (owner@demo.farma / admin123)
+pnpm prisma db seed       # cria 5 usuários + 5 pacientes + dados de teste
 pnpm dev                  # http://localhost:3000
+```
+
+Credenciais e dados de teste em [`docs/USERS.md`](docs/USERS.md). Os 5 usuários demo (`owner@demo.farma`, `farmaceutico@demo.farma`, `atendente1@demo.farma`, `atendente2@demo.farma`, `leitura@demo.farma`) usam a senha definida em `DEMO_PASSWORD`:
+
+```bash
+DEMO_PASSWORD='your-choice' pnpm prisma db seed   # senha que quiser, igual para os 5 demos
+```
+
+Para criar sua conta pessoal de OWNER junto:
+```bash
+DEMO_PASSWORD='your-choice' \
+OWNER_EMAIL=seu@email.com \
+OWNER_NAME='Seu Nome' \
+OWNER_PASSWORD='your-secret' \
+  pnpm prisma db seed
 ```
 
 ## Fluxo manual de validação
 
-1. **Login** em `/sign-in` como `owner@demo.farma` / `admin123`
+1. **Login** em `/sign-in` como `owner@demo.farma` com a senha que você passou em `DEMO_PASSWORD`
 2. **Equipe** em `/settings/team` → clicar "Convidar membro"
 3. Preencher email, papel (Atendente), marcar canais (Email + Link copiável)
 4. **Confirmar entrega** — toast de sucesso, link aparece copiável; convite aparece em "Pendentes"
