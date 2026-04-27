@@ -29,7 +29,9 @@ import {
   ramSevereWarning,
   ramAcknowledgement,
   refusalReasonPrompt,
+  returnAcknowledgement,
 } from "@/lib/whatsapp/templates";
+import { recordReturnResponse } from "@/lib/returns/dispatch";
 import type { PosologyInput } from "@/lib/prescriptions/posology";
 
 const TERMS_VERSION = "1.0";
@@ -75,6 +77,9 @@ async function dispatchByIntent(
 
     case "ram_severity":
       return await handleRamSeverity(patient, phone, intent.severity);
+
+    case "return_response":
+      return await handleReturnResponse(patient, phone, intent.expectationId, intent.response);
 
     case "free_text":
       return await sendWhatsApp(unknownCommandHelp({ phone }));
@@ -344,6 +349,28 @@ async function handleRamSeverity(
     return await sendWhatsApp(ramSevereWarning({ phone }));
   }
   return await sendWhatsApp(ramAcknowledgement({ phone }));
+}
+
+async function handleReturnResponse(
+  patient: { id: string },
+  phone: string,
+  expectationId: string,
+  response: "restocked-here" | "restocked-away" | "stopping",
+): Promise<WhatsAppSendResult> {
+  // Verify the expectation belongs to this patient before mutating
+  const exp = await prisma.returnExpectation.findUnique({
+    where: { id: expectationId },
+    include: { prescription: { select: { patientId: true } } },
+  });
+  if (!exp || exp.prescription.patientId !== patient.id) {
+    return { status: "MOCK", providerId: "ignored-foreign-expectation" };
+  }
+  if (exp.status !== "ASKED") {
+    return { status: "MOCK", providerId: "ignored-non-asked-expectation" };
+  }
+
+  await recordReturnResponse(expectationId, response);
+  return await sendWhatsApp(returnAcknowledgement({ phone, response }));
 }
 
 function prescriptionToPosology(p: Prescription): PosologyInput & { doseAmount: string; instructions?: string | null } {

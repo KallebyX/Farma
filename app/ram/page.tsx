@@ -80,7 +80,7 @@ export default async function RamInboxPage() {
                         </p>
                       ) : null}
                       {r.freeText ? (
-                        <p className="mt-1 text-xs italic text-slate-500">"{r.freeText}"</p>
+                        <p className="mt-1 text-xs italic text-slate-500">&ldquo;{r.freeText}&rdquo;</p>
                       ) : null}
                     </div>
                     <ReviewRamButton ramId={r.id} />

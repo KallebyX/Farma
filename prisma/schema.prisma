@@ -264,12 +264,13 @@ model Prescription {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
-  patient        Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  medication     MedicationCatalog  @relation(fields: [medicationId], references: [id])
-  createdBy      User               @relation("PrescriptionCreatedBy", fields: [createdById], references: [id])
-  reminders      ReminderJob[]
-  adherence      AdherenceEvent[]
-  ramReports     RAMReport[]
+  patient            Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  medication         MedicationCatalog   @relation(fields: [medicationId], references: [id])
+  createdBy          User                @relation("PrescriptionCreatedBy", fields: [createdById], references: [id])
+  reminders          ReminderJob[]
+  adherence          AdherenceEvent[]
+  ramReports         RAMReport[]
+  returnExpectations ReturnExpectation[]
 
   @@index([patientId, status])
 }
@@ -385,4 +386,39 @@ model BotConversation {
 
   @@unique([phone])
   @@index([state])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Return reminders: when a patient's stock is expected to run out, we ask via
+// WhatsApp whether they came back to refill. Highest direct ROI feature for
+// the pharmacy (recovers customers who would otherwise drift away).
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ReturnStatus {
+  SCHEDULED      // expected but not yet asked
+  ASKED          // patient was contacted, awaiting response
+  RESTOCKED_HERE // patient said they bought again at this pharmacy
+  RESTOCKED_AWAY // patient said they bought at another pharmacy
+  STOPPING       // patient said they're stopping the treatment
+  EXPIRED        // asked but never responded within window
+  CANCELLED      // prescription cancelled before resolution
+}
+
+model ReturnExpectation {
+  id             String        @id @default(uuid())
+  prescriptionId String
+  expectedAt     DateTime      // estimated stock end date
+  graceDays      Int           @default(2)  // days after expectedAt before asking
+  status         ReturnStatus  @default(SCHEDULED)
+  askedAt        DateTime?
+  respondedAt    DateTime?
+  whatsappId     String?       // provider message id
+  notes          String?       // free-text response if patient picks "outro"
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([status, expectedAt])
+  @@index([prescriptionId])
 }

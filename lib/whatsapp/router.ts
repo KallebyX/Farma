@@ -9,8 +9,11 @@ export type Intent =
   | { kind: "reminder_response"; reminderId: string; action: ReminderAction; reason?: RefusalReason }
   | { kind: "ram_severity"; severity: "mild" | "moderate" | "severe" }
   | { kind: "ram_symptoms_freetext"; text: string }
+  | { kind: "return_response"; expectationId: string; response: ReturnResponse }
   | { kind: "free_text"; text: string }
   | { kind: "unknown" };
+
+export type ReturnResponse = "restocked-here" | "restocked-away" | "stopping";
 
 export type SlashCommand =
   | "meusremedios"
@@ -75,6 +78,18 @@ function parseButton(id: string): Intent {
     const sev = id.split(":")[2] as "mild" | "moderate" | "severe";
     if (sev === "mild" || sev === "moderate" || sev === "severe") {
       return { kind: "ram_severity", severity: sev };
+    }
+  }
+
+  if (id.startsWith("ret:")) {
+    const parts = id.split(":");
+    const expectationId = parts[1] ?? "";
+    const response = parts[2] as ReturnResponse;
+    if (
+      expectationId &&
+      (response === "restocked-here" || response === "restocked-away" || response === "stopping")
+    ) {
+      return { kind: "return_response", expectationId, response };
     }
   }
 
