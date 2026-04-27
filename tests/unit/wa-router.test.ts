@@ -66,6 +66,29 @@ describe("parseInbound — buttons", () => {
     expect(parseInbound({ buttonId: "ram:severity:severe" })).toEqual({ kind: "ram_severity", severity: "severe" });
   });
 
+  it("parses return-response buttons", () => {
+    expect(parseInbound({ buttonId: "ret:abc123:restocked-here" })).toEqual({
+      kind: "return_response",
+      expectationId: "abc123",
+      response: "restocked-here",
+    });
+    expect(parseInbound({ buttonId: "ret:xyz:restocked-away" })).toEqual({
+      kind: "return_response",
+      expectationId: "xyz",
+      response: "restocked-away",
+    });
+    expect(parseInbound({ buttonId: "ret:foo:stopping" })).toEqual({
+      kind: "return_response",
+      expectationId: "foo",
+      response: "stopping",
+    });
+  });
+
+  it("rejects malformed return-response button ids", () => {
+    expect(parseInbound({ buttonId: "ret:abc:" })).toEqual({ kind: "unknown" });
+    expect(parseInbound({ buttonId: "ret:abc:invalid-response" })).toEqual({ kind: "unknown" });
+  });
+
   it("returns unknown for unrecognized button ids", () => {
     expect(parseInbound({ buttonId: "weird-id" })).toEqual({ kind: "unknown" });
     expect(parseInbound({ buttonId: "r::" })).toEqual({ kind: "unknown" });

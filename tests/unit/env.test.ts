@@ -11,7 +11,7 @@ const baseValid = {
 
 describe("checkEnv", () => {
   it("passes for a complete valid env", () => {
-    const r = checkEnv(baseValid as NodeJS.ProcessEnv);
+    const r = checkEnv(baseValid as unknown as NodeJS.ProcessEnv);
     expect(r.ok).toBe(true);
   });
 
@@ -19,7 +19,7 @@ describe("checkEnv", () => {
     const r = checkEnv({
       ...baseValid,
       DATABASE_URL: "postgresql://placeholder",
-    } as NodeJS.ProcessEnv);
+    } as unknown as NodeJS.ProcessEnv);
     expect(r.ok).toBe(false);
   });
 
@@ -27,7 +27,7 @@ describe("checkEnv", () => {
     const r = checkEnv({
       ...baseValid,
       NEXTAUTH_SECRET: "short",
-    } as NodeJS.ProcessEnv);
+    } as unknown as NodeJS.ProcessEnv);
     expect(r.ok).toBe(false);
   });
 
@@ -35,7 +35,7 @@ describe("checkEnv", () => {
     const r = checkEnv({
       ...baseValid,
       NEXTAUTH_URL: "farma.app",
-    } as NodeJS.ProcessEnv);
+    } as unknown as NodeJS.ProcessEnv);
     expect(r.ok).toBe(false);
   });
 
@@ -43,7 +43,7 @@ describe("checkEnv", () => {
     const r = checkEnv({
       ...baseValid,
       NODE_ENV: "production",
-    } as NodeJS.ProcessEnv);
+    } as unknown as NodeJS.ProcessEnv);
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.warnings.some((w) => w.includes("RESEND"))).toBe(true);
@@ -56,7 +56,7 @@ describe("checkEnv", () => {
       ...baseValid,
       NODE_ENV: "production",
       NEXTAUTH_URL: "http://farma.app",
-    } as NodeJS.ProcessEnv);
+    } as unknown as NodeJS.ProcessEnv);
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.warnings.some((w) => w.includes("https"))).toBe(true);
@@ -68,7 +68,7 @@ describe("checkEnv", () => {
       ...baseValid,
       NODE_ENV: "production",
       NEXTAUTH_URL: "http://localhost:3000",
-    } as NodeJS.ProcessEnv);
+    } as unknown as NodeJS.ProcessEnv);
     if (r.ok) {
       expect(r.warnings.some((w) => w.includes("http://localhost"))).toBe(false);
     }
