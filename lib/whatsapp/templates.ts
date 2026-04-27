@@ -167,6 +167,50 @@ export function unknownCommandHelp(args: { phone: string }): WhatsAppOutbound {
   };
 }
 
+export function returnReminder(args: {
+  phone: string;
+  patientName: string;
+  pharmacyName: string;
+  medicationLabel: string;
+  expectationId: string;
+}): WhatsAppOutbound {
+  return {
+    kind: "buttons",
+    phone: args.phone,
+    text: `📦 Olá, ${firstName(args.patientName)}! Pelos meus cálculos, seu *${args.medicationLabel}* já deve ter acabado.\n\nVocê comprou reposição?`,
+    buttons: [
+      { id: `ret:${args.expectationId}:restocked-here`, label: "✅ Comprei aqui" },
+      { id: `ret:${args.expectationId}:restocked-away`, label: "Comprei em outro lugar" },
+      { id: `ret:${args.expectationId}:stopping`, label: "Vou parar o tratamento" },
+    ],
+  };
+}
+
+export function returnAcknowledgement(args: {
+  phone: string;
+  response: "restocked-here" | "restocked-away" | "stopping";
+}): WhatsAppOutbound {
+  if (args.response === "restocked-here") {
+    return {
+      kind: "text",
+      phone: args.phone,
+      text: "Que bom! 💙 Continuamos te lembrando dos horários normalmente.",
+    };
+  }
+  if (args.response === "restocked-away") {
+    return {
+      kind: "text",
+      phone: args.phone,
+      text: "Tudo bem! Anotado. Quando quiser comprar conosco de novo, é só pedir.",
+    };
+  }
+  return {
+    kind: "text",
+    phone: args.phone,
+    text: "Pausei seus lembretes. ⚠️ Antes de interromper o tratamento, vale conversar com o farmacêutico responsável ou seu médico. Mande /voltar quando quiser reativar.",
+  };
+}
+
 function firstName(full: string): string {
   return full.split(/\s+/)[0] ?? full;
 }

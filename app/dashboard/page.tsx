@@ -63,6 +63,7 @@ export default async function DashboardPage() {
 
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <NavCard href="/patients" title="Pacientes" desc="Cadastro, lembretes e histórico" />
+          <NavCard href="/returns" title="Retornos esperados" desc="Resgate de pacientes que sumiram" />
           <NavCard href="/ram" title="Inbox de RAM" desc="Reações adversas para revisão" />
           <NavCard href="/catalog" title="Catálogo" desc="Medicamentos da base" />
           <NavCard href="/settings/team" title="Equipe" desc="Membros e convites" />
