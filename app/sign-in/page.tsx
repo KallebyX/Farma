@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AuthError } from "next-auth";
 import { auth, signIn } from "@/lib/auth/config";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -20,7 +21,15 @@ export default async function SignInPage({
     "use server";
     const email = String(formData.get("email") ?? "");
     const password = String(formData.get("password") ?? "");
-    await signIn("credentials", { email, password, redirectTo: from });
+    try {
+      await signIn("credentials", { email, password, redirectTo: from });
+    } catch (error) {
+      if (error instanceof AuthError) {
+        const code = error.type === "CredentialsSignin" ? "CredentialsSignin" : "AuthError";
+        redirect(`/sign-in?error=${code}&from=${encodeURIComponent(from)}`);
+      }
+      throw error;
+    }
   }
 
   return (
