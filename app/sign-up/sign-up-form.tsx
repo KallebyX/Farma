@@ -62,19 +62,30 @@ export function SignUpForm() {
           return;
         }
 
-        await fetch("/api/auth/callback/credentials", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            email: payload.email,
-            password: payload.password,
-            redirect: "false",
-            callbackUrl: json.redirectTo ?? "/dashboard",
-          }),
-          redirect: "manual",
-        }).catch(() => null);
-
         const target = json.redirectTo ?? "/dashboard";
+
+        try {
+          const csrfRes = await fetch("/api/auth/csrf", { credentials: "include" });
+          const { csrfToken } = (await csrfRes.json()) as { csrfToken: string };
+
+          await fetch("/api/auth/callback/credentials", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              csrfToken,
+              email: payload.email,
+              password: payload.password,
+              redirect: "false",
+              callbackUrl: target,
+            }),
+            redirect: "manual",
+          });
+        } catch {
+          router.replace(`/sign-in?from=${encodeURIComponent(target)}`);
+          return;
+        }
+
         router.replace(target);
         router.refresh();
       } catch (err) {
