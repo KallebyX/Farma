@@ -87,10 +87,13 @@ export function parseCsv(text: string, sep = ";"): string[][] {
 }
 
 export function parseCmedCsv(text: string): ParsedCmedEntry[] {
-  // Detect delimiter from the first line: CMED uses ; but dados.gov.br
-  // mirrors sometimes use , — try both.
-  const firstLine = text.slice(0, text.indexOf("\n"));
-  const sep = firstLine.includes(";") ? ";" : ",";
+  // Pick delimiter by counting occurrences in the first ~10k chars: the first
+  // line is usually metadata ("DADOS COMPILADOS PELA CMED..." with no
+  // separators), so a one-line sniff would default wrong.
+  const sample = text.slice(0, 10_000);
+  const semi = (sample.match(/;/g) ?? []).length;
+  const comma = (sample.match(/,/g) ?? []).length;
+  const sep = semi >= comma ? ";" : ",";
   const matrix = parseCsv(text, sep);
 
   const headerIdx = findHeaderRowIndex(matrix);
