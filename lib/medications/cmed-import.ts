@@ -137,10 +137,14 @@ export async function upsertCmedEntries(
   for (let i = 0; i < entries.length; i += chunkSize) {
     const chunk = entries.slice(i, i + chunkSize);
     await prisma.$transaction(
-      chunk.map((entry) =>
-        prisma.medicationCatalog.upsert({
-          where: { cmedGgrem: entry.cmedGgrem },
-          create: {
+      async (tx) => {
+        for (const entry of chunk) {
+          // pmcMax is Decimal? — Prisma accepts string for Decimal inputs and
+          // sidesteps the tuple-vs-array overload friction we'd hit if we
+          // passed `prisma.medicationCatalog.upsert(...)` calls inside an
+          // array to $transaction.
+          const pmcMax = entry.pmcMax === null ? null : entry.pmcMax.toString();
+          const data = {
             cmedGgrem: entry.cmedGgrem,
             activeIngredient: entry.activeIngredient,
             brandName: entry.brandName,
@@ -152,24 +156,16 @@ export async function upsertCmedEntries(
             ean: entry.ean,
             therapeuticClass: entry.therapeuticClass,
             productType: entry.productType,
-            pmcMax: entry.pmcMax,
-          },
-          update: {
-            activeIngredient: entry.activeIngredient,
-            brandName: entry.brandName,
-            dosage: entry.dosage,
-            form: entry.form,
-            manufacturerName: entry.manufacturerName,
-            manufacturerCnpj: entry.manufacturerCnpj,
-            anvisaCode: entry.anvisaCode,
-            ean: entry.ean,
-            therapeuticClass: entry.therapeuticClass,
-            productType: entry.productType,
-            pmcMax: entry.pmcMax,
-          },
-        }),
-      ),
-      { timeout: 30_000 },
+            pmcMax,
+          };
+          await tx.medicationCatalog.upsert({
+            where: { cmedGgrem: entry.cmedGgrem },
+            create: data,
+            update: data,
+          });
+        }
+      },
+      { timeout: 60_000 },
     );
     progress.processed += chunk.length;
     options.onProgress?.({ ...progress });
