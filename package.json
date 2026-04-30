@@ -16,7 +16,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "expire-invitations": "tsx scripts/expire-invitations.ts",
-    "check:env": "tsx scripts/check-env.ts"
+    "check:env": "tsx scripts/check-env.ts",
+    "cmed:sync": "tsx scripts/cmed-sync.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -1,0 +1,60 @@
+name: CMED Sync (medication catalog)
+
+# Downloads the latest CMED price list from Anvisa and upserts every row into
+# MedicationCatalog. Idempotent — safe to re-run.
+#
+# Required repo secrets:
+#   PROD_DATABASE_URL   pooler/runtime URL
+#   PROD_DIRECT_URL     direct URL (port 5432)
+#
+# Optional repo secrets:
+#   CMED_URL            override the default Anvisa download URL when the
+#                       monthly slug rolls
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Roda no dia 5 de cada mês às 03:00 UTC (CMED publica no início do mês)
+    - cron: "0 3 5 * *"
+
+concurrency:
+  group: cmed-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: download · parse · upsert
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.PROD_DIRECT_URL }}
+      CMED_URL: ${{ secrets.CMED_URL }}
+
+    steps:
+      - name: Refuse to run without a database URL
+        if: ${{ env.DATABASE_URL == '' || env.DIRECT_URL == '' }}
+        run: |
+          echo "::error::PROD_DATABASE_URL and PROD_DIRECT_URL must be set as repo secrets."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Generate Prisma client
+        run: pnpm prisma:generate
+
+      - name: Run CMED sync
+        run: pnpm cmed:sync
