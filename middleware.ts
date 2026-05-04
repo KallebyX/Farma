@@ -7,9 +7,12 @@ const { auth } = NextAuth(authEdgeConfig);
 const PUBLIC_PATHS = [
   /^\/$/,
   /^\/sign-in$/,
+  /^\/sign-up$/,
   /^\/legal\//,
   /^\/accept-invite\//,
   /^\/api\/accept-invite\//,
+  /^\/api\/sign-up$/,
+  /^\/api\/cmed-fetch$/,
   /^\/api\/auth\//,
   /^\/api\/cron\//,
   /^\/api\/whatsapp\//,

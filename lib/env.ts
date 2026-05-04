@@ -36,6 +36,7 @@ export const envSchema = z.object({
   WHATSAPP_WEBHOOK_SECRET: optional,
   UPSTASH_REDIS_REST_URL: optional,
   UPSTASH_REDIS_REST_TOKEN: optional,
+  CMED_URL: optional,
 });
 
 export type Env = z.infer<typeof envSchema>;

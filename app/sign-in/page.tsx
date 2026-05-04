@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AuthError } from "next-auth";
 import { auth, signIn } from "@/lib/auth/config";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -20,7 +21,15 @@ export default async function SignInPage({
     "use server";
     const email = String(formData.get("email") ?? "");
     const password = String(formData.get("password") ?? "");
-    await signIn("credentials", { email, password, redirectTo: from });
+    try {
+      await signIn("credentials", { email, password, redirectTo: from });
+    } catch (error) {
+      if (error instanceof AuthError) {
+        const code = error.type === "CredentialsSignin" ? "CredentialsSignin" : "AuthError";
+        redirect(`/sign-in?error=${code}&from=${encodeURIComponent(from)}`);
+      }
+      throw error;
+    }
   }
 
   return (
@@ -73,7 +82,13 @@ export default async function SignInPage({
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-slate-500">
+        <p className="mt-6 text-center text-sm text-slate-600">
+          Não tem conta?{" "}
+          <Link href="/sign-up" className="text-brand-600 font-semibold hover:underline">
+            Criar conta da farmácia
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-xs text-slate-500">
           Recebeu um convite? Use o link enviado por email ou WhatsApp.
           <br />
           <Link href="/" className="text-brand-600 hover:underline">
