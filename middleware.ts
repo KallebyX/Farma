@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   /^\/accept-invite\//,
   /^\/api\/accept-invite\//,
   /^\/api\/sign-up$/,
+  /^\/api\/cmed-fetch$/,
   /^\/api\/auth\//,
   /^\/api\/cron\//,
   /^\/api\/whatsapp\//,
