@@ -4,20 +4,29 @@ import { request as httpRequest } from "node:http";
 import { Readable } from "node:stream";
 
 // Proxy that fetches the CMED price CSV from Anvisa and streams it back.
-// Exists because Supabase Edge Functions / Deno Deploy don't trust the
-// ICP-Brasil chain dados.anvisa.gov.br serves; even Node's fetch can
-// fail with handshake errors because the server doesn't ship the
-// intermediate cert. We use the node:https module with
-// rejectUnauthorized:false because the data is public open-data CSV
-// (no PII or auth-bearing payloads) and the edge function downstream
-// sanity-checks shape (size + semicolon count) before trusting it.
+// Anvisa's HTTPS chain isn't fully trusted (rejectUnauthorized:false) and
+// they 403 generic User-Agents (so we send a browser UA + browser-y
+// Accept headers). The data is public open-data CSV — no PII.
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const SOURCE_URL =
-  process.env.CMED_URL ?? "https://dados.anvisa.gov.br/dados/TA_PRECO_MEDICAMENTO.csv";
+const SOURCE_URLS = [
+  process.env.CMED_URL,
+  "https://dados.anvisa.gov.br/dados/TA_PRECO_MEDICAMENTO.csv",
+  "https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/cmed/precos/arquivos/TA_PRECO_MEDICAMENTO.csv",
+].filter((u): u is string => Boolean(u));
+
+const BROWSER_HEADERS: Record<string, string> = {
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+  "Accept": "text/csv,application/vnd.ms-excel,application/octet-stream,*/*;q=0.8",
+  "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+  "Accept-Encoding": "identity",
+  "Cache-Control": "no-cache",
+  "Pragma": "no-cache",
+};
 
 function authorized(req: Request): boolean {
   const secret = process.env.CMED_PROXY_SECRET;
@@ -28,7 +37,8 @@ function authorized(req: Request): boolean {
   return fromQuery === secret || fromHeader === secret;
 }
 
-function fetchCsvStream(url: string): Promise<Readable> {
+function fetchOne(url: string, depth = 0): Promise<{ url: string; stream: Readable }> {
+  if (depth > 5) return Promise.reject(new Error("too many redirects"));
   const u = new URL(url);
   const requestFn = u.protocol === "http:" ? httpRequest : httpsRequest;
   return new Promise((resolve, reject) => {
@@ -40,23 +50,41 @@ function fetchCsvStream(url: string): Promise<Readable> {
         path: u.pathname + u.search,
         method: "GET",
         rejectUnauthorized: false,
-        headers: { "User-Agent": "farma-cmed-proxy/1.0" },
+        headers: BROWSER_HEADERS,
       },
       (res) => {
-        if ((res.statusCode === 301 || res.statusCode === 302) && res.headers.location) {
-          fetchCsvStream(new URL(res.headers.location, url).toString()).then(resolve, reject);
+        if (
+          res.statusCode &&
+          res.statusCode >= 300 &&
+          res.statusCode < 400 &&
+          res.headers.location
+        ) {
+          fetchOne(new URL(res.headers.location, url).toString(), depth + 1).then(resolve, reject);
           return;
         }
         if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
           reject(new Error(`upstream ${res.statusCode}`));
           return;
         }
-        resolve(res);
+        resolve({ url, stream: res });
       },
     );
     req.on("error", reject);
+    req.setTimeout(40_000, () => req.destroy(new Error("timeout")));
     req.end();
   });
+}
+
+async function fetchCsv(): Promise<{ url: string; stream: Readable }> {
+  const errs: string[] = [];
+  for (const u of SOURCE_URLS) {
+    try {
+      return await fetchOne(u);
+    } catch (err) {
+      errs.push(`${u} -> ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  throw new Error(`all sources failed: ${errs.join(" | ")}`);
 }
 
 export async function GET(req: Request) {
@@ -65,11 +93,12 @@ export async function GET(req: Request) {
   }
 
   try {
-    const stream = await fetchCsvStream(SOURCE_URL);
+    const { url: usedUrl, stream } = await fetchCsv();
     return new NextResponse(Readable.toWeb(stream) as ReadableStream<Uint8Array>, {
       status: 200,
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
+        "X-Cmed-Source": usedUrl,
         "Cache-Control": "private, max-age=300",
       },
     });
