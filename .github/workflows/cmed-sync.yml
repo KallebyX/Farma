@@ -13,9 +13,6 @@ name: CMED Sync (medication catalog)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - cmed-fire
   schedule:
     # Roda no dia 5 de cada mês às 03:00 UTC (CMED publica no início do mês)
     - cron: "0 3 5 * *"
