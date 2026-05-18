@@ -16,12 +16,15 @@ export function NewPatientForm() {
     setErrors({});
     const fd = new FormData(e.currentTarget);
     const rawAge = String(fd.get("age") ?? "").trim();
+    const parsedAge = rawAge === "" ? undefined : parseInt(rawAge, 10);
     const payload = {
       name: String(fd.get("name") ?? "").trim(),
       phone: normalizePhone(String(fd.get("phone") ?? "").trim()),
       cpf: String(fd.get("cpf") ?? "").replace(/\D/g, "") || undefined,
       sex: (String(fd.get("sex") ?? "") || undefined) as "M" | "F" | "O" | undefined,
-      age: rawAge ? parseInt(rawAge, 10) : undefined,
+      age: parsedAge !== undefined && Number.isInteger(parsedAge) && parsedAge >= 0 && parsedAge <= 150
+        ? parsedAge
+        : undefined,
       allergies: String(fd.get("allergies") ?? "")
         .split(",")
         .map((s) => s.trim())
@@ -33,6 +36,11 @@ export function NewPatientForm() {
       notes: String(fd.get("notes") ?? "").trim() || undefined,
       consentGiven: fd.get("consentGiven") === "on",
     };
+
+    if (!payload.consentGiven) {
+      setErrors({ consentGiven: "É necessário registrar o consentimento LGPD." });
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -140,12 +148,22 @@ export function NewPatientForm() {
         />
       </Field>
 
-      <label className="flex items-start gap-2.5 cursor-pointer">
-        <input type="checkbox" name="consentGiven" className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"/>
-        <span className="text-[12.5px] text-slate-700">
-          Paciente já forneceu consentimento LGPD presencialmente
-        </span>
-      </label>
+      <div>
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            name="consentGiven"
+            required
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+          />
+          <span className="text-[12.5px] text-slate-700">
+            Paciente já forneceu consentimento LGPD presencialmente
+          </span>
+        </label>
+        {errors.consentGiven && (
+          <p className="mt-1 text-xs text-rose-700">{errors.consentGiven}</p>
+        )}
+      </div>
 
       <div className="rounded-lg bg-brand-50 border border-brand-100 px-4 py-3 flex items-start gap-2.5">
         <Icon.WhatsApp size={15} className="text-brand-600 mt-0.5 shrink-0"/>
