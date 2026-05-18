@@ -23,35 +23,39 @@ export async function createPatient(ctx: SessionContext, input: CreatePatientInp
     select: { fantasia: true, razaoSocial: true },
   });
 
-  const patient = await prisma.patient.create({
-    data: {
-      pharmacyId: ctx.pharmacyId,
-      name: input.name,
-      phone,
-      cpf: input.cpf || null,
-      birthDate: input.birthDate ? new Date(input.birthDate) : null,
-      age: input.age ?? null,
-      sex: input.sex,
-      comorbidities: input.comorbidities,
-      allergies: input.allergies,
-      notes: input.notes,
-      consentGiven: input.consentGiven,
-      consentDate: input.consentGiven ? new Date() : null,
-      createdById: ctx.userId,
-    },
-  });
-
-  if (input.consentGiven) {
-    await prisma.patientConsent.create({
+  const patient = await prisma.$transaction(async (tx) => {
+    const p = await tx.patient.create({
       data: {
-        patientId: patient.id,
-        scope: ConsentScope.SERVICE,
-        granted: true,
-        termsVersion: "1.0",
-        source: "panel",
+        pharmacyId: ctx.pharmacyId,
+        name: input.name,
+        phone,
+        cpf: input.cpf || null,
+        birthDate: input.birthDate ? new Date(input.birthDate) : null,
+        age: input.age ?? null,
+        sex: input.sex,
+        comorbidities: input.comorbidities,
+        allergies: input.allergies,
+        notes: input.notes,
+        consentGiven: input.consentGiven,
+        consentDate: input.consentGiven ? new Date() : null,
+        createdById: ctx.userId,
       },
-    }).catch(() => {});
-  }
+    });
+
+    if (input.consentGiven) {
+      await tx.patientConsent.create({
+        data: {
+          patientId: p.id,
+          scope: ConsentScope.SERVICE,
+          granted: true,
+          termsVersion: "1.0",
+          source: "panel",
+        },
+      });
+    }
+
+    return p;
+  });
 
   // Kick off the WhatsApp consent request. We don't await on failure — we
   // record patient regardless so the panel reflects the registration.

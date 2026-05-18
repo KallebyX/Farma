@@ -51,7 +51,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             <p className="text-sm text-slate-500">
               {patient.phone}
               {patient.cpf ? ` · CPF ${maskCpf(patient.cpf)}` : ""}
-              {patient.age ? ` · ${patient.age} anos` : ""}
+              {patient.age != null ? ` · ${patient.age} anos` : ""}
             </p>
             {patient.allergies.length > 0 ? (
               <p className="mt-1 text-xs text-red-600 font-medium">

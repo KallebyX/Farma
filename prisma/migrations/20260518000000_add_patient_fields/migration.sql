@@ -1,5 +1,8 @@
 -- AddColumn age
 ALTER TABLE "Patient" ADD COLUMN "age" INTEGER;
+ALTER TABLE "Patient"
+  ADD CONSTRAINT "Patient_age_range_check"
+  CHECK ("age" IS NULL OR ("age" >= 0 AND "age" <= 150));
 
 -- AddColumn allergies
 ALTER TABLE "Patient" ADD COLUMN "allergies" TEXT[] NOT NULL DEFAULT '{}';

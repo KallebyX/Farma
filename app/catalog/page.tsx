@@ -3,21 +3,9 @@ import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { AddMedication } from "./add-medication";
+import { FORM_LABELS } from "./constants";
 
 export const dynamic = "force-dynamic";
-
-const FORM_LABELS: Record<string, string> = {
-  TABLET: "Comprimido",
-  CAPSULE: "Cápsula",
-  LIQUID: "Líquido",
-  DROPS: "Gotas",
-  INJECTION: "Injeção",
-  CREAM: "Creme",
-  OINTMENT: "Pomada",
-  INHALER: "Inalador",
-  PATCH: "Adesivo",
-  OTHER: "Outro",
-};
 
 export default async function CatalogPage({
   searchParams,

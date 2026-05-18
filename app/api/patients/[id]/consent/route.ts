@@ -16,20 +16,21 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       return NextResponse.json({ ok: false, error: "Não encontrado" }, { status: 404 });
     }
 
-    await prisma.patientConsent.create({
-      data: {
-        patientId: id,
-        scope: ConsentScope.SERVICE,
-        granted: true,
-        termsVersion: "1.0",
-        source: "panel",
-      },
-    });
-
-    const updated = await prisma.patient.update({
-      where: { id },
-      data: { consentGiven: true, consentDate: new Date() },
-    });
+    const [, updated] = await prisma.$transaction([
+      prisma.patientConsent.create({
+        data: {
+          patientId: id,
+          scope: ConsentScope.SERVICE,
+          granted: true,
+          termsVersion: "1.0",
+          source: "panel",
+        },
+      }),
+      prisma.patient.update({
+        where: { id },
+        data: { consentGiven: true, consentDate: new Date() },
+      }),
+    ]);
 
     return NextResponse.json({ ok: true, patient: updated });
   } catch (err) {

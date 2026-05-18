@@ -50,13 +50,14 @@ export function CustomMedications({
 
   function removeMed(med: string) {
     const newMeds = meds.filter((m) => m !== med);
+    setError(null);
     startTransition(async () => {
       try {
         await patch(newMeds);
         setMeds(newMeds);
         router.refresh();
-      } catch {
-        // silently ignore remove errors
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Falha ao remover");
       }
     });
   }

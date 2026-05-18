@@ -1,22 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { DOSAGE_FORM_LABELS } from "./constants";
 
 type FieldErrors = Partial<Record<string, string>>;
-
-const DOSAGE_FORMS = [
-  { value: "TABLET", label: "Comprimido" },
-  { value: "CAPSULE", label: "Cápsula" },
-  { value: "LIQUID", label: "Líquido" },
-  { value: "DROPS", label: "Gotas" },
-  { value: "INJECTION", label: "Injeção" },
-  { value: "CREAM", label: "Creme" },
-  { value: "OINTMENT", label: "Pomada" },
-  { value: "INHALER", label: "Inalador" },
-  { value: "PATCH", label: "Adesivo" },
-  { value: "OTHER", label: "Outro" },
-] as const;
 
 export function AddMedication() {
   const router = useRouter();
@@ -30,6 +18,14 @@ export function AddMedication() {
     setErrors({});
     setFormError(null);
   }
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && open) close();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -97,7 +93,11 @@ export function AddMedication() {
           >
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <h2 className="text-base font-semibold text-slate-800">Novo medicamento</h2>
-              <button onClick={close} className="text-slate-400 hover:text-slate-600 text-xl leading-none">
+              <button
+                onClick={close}
+                aria-label="Fechar modal"
+                className="text-slate-400 hover:text-slate-600 text-xl leading-none"
+              >
                 ×
               </button>
             </div>
@@ -150,7 +150,7 @@ export function AddMedication() {
                       className="select-tech w-full"
                     >
                       <option value="" disabled>Selecione…</option>
-                      {DOSAGE_FORMS.map((f) => (
+                      {DOSAGE_FORM_LABELS.map((f) => (
                         <option key={f.value} value={f.value}>
                           {f.label}
                         </option>
