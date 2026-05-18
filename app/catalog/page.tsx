@@ -2,8 +2,22 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { AddMedication } from "./add-medication";
 
 export const dynamic = "force-dynamic";
+
+const FORM_LABELS: Record<string, string> = {
+  TABLET: "Comprimido",
+  CAPSULE: "Cápsula",
+  LIQUID: "Líquido",
+  DROPS: "Gotas",
+  INJECTION: "Injeção",
+  CREAM: "Creme",
+  OINTMENT: "Pomada",
+  INHALER: "Inalador",
+  PATCH: "Adesivo",
+  OTHER: "Outro",
+};
 
 export default async function CatalogPage({
   searchParams,
@@ -34,10 +48,15 @@ export default async function CatalogPage({
         <Link href="/dashboard" className="text-xs text-slate-500 hover:underline">
           ← Voltar
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-brand-800">Catálogo de medicamentos</h1>
-        <p className="text-sm text-slate-500">
-          Base compartilhada usada nas prescrições. Cada item liga ao detentor do registro.
-        </p>
+        <div className="flex items-start justify-between mt-2">
+          <div>
+            <h1 className="text-2xl font-bold text-brand-800">Catálogo de medicamentos</h1>
+            <p className="text-sm text-slate-500">
+              Base compartilhada usada nas prescrições. Cada item liga ao detentor do registro.
+            </p>
+          </div>
+          <AddMedication />
+        </div>
 
         <form className="mt-6 flex gap-2">
           <input
@@ -79,7 +98,7 @@ export default async function CatalogPage({
                     <td className="px-4 py-3 font-medium text-slate-800">{m.brandName}</td>
                     <td className="px-4 py-3 text-slate-600">{m.activeIngredient}</td>
                     <td className="px-4 py-3 text-slate-600">{m.dosage}</td>
-                    <td className="px-4 py-3 text-slate-600 lowercase">{m.form}</td>
+                    <td className="px-4 py-3 text-slate-600">{FORM_LABELS[m.form] ?? m.form}</td>
                     <td className="px-4 py-3 text-slate-600">{m.manufacturerName ?? "—"}</td>
                   </tr>
                 ))

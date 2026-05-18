@@ -15,9 +15,12 @@ export const createPatientSchema = z.object({
     .optional()
     .or(z.literal("")),
   birthDate: z.string().datetime().optional().or(z.literal("")),
+  age: z.number().int().min(0).max(150).optional(),
   sex: z.enum(["M", "F", "O"]).optional(),
   comorbidities: z.array(z.string().trim().min(1)).max(20).default([]),
+  allergies: z.array(z.string().trim().min(1)).max(50).default([]),
   notes: z.string().trim().max(500).optional(),
+  consentGiven: z.boolean().default(false),
 });
 
 export type CreatePatientInput = z.infer<typeof createPatientSchema>;

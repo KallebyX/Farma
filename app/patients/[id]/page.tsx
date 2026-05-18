@@ -4,6 +4,8 @@ import { getSessionContext } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { summarizePosology } from "@/lib/prescriptions/posology";
 import { AddPrescription } from "./add-prescription";
+import { CustomMedications } from "./custom-medications";
+import { ConsentButton } from "./consent-button";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +36,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   const activeRx = patient.prescriptions.filter((p) => p.status === "ACTIVE");
   const polypharmacy = activeRx.length >= 5;
   const serviceConsent = patient.consents.find((c) => c.scope === "SERVICE");
+  const hasConsent = patient.consentGiven || serviceConsent?.granted === true;
 
   return (
     <main className="min-h-screen px-6 py-10">
@@ -48,7 +51,13 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             <p className="text-sm text-slate-500">
               {patient.phone}
               {patient.cpf ? ` · CPF ${maskCpf(patient.cpf)}` : ""}
+              {patient.age ? ` · ${patient.age} anos` : ""}
             </p>
+            {patient.allergies.length > 0 ? (
+              <p className="mt-1 text-xs text-red-600 font-medium">
+                Alergias: {patient.allergies.join(", ")}
+              </p>
+            ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
               <PatientStatusBadge status={patient.status} />
               {polypharmacy ? (
@@ -56,18 +65,12 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                   Polifarmácia ({activeRx.length})
                 </span>
               ) : null}
-              {serviceConsent ? (
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${
-                  serviceConsent.granted
-                    ? "bg-green-50 text-green-700 border-green-100"
-                    : "bg-red-50 text-red-700 border-red-100"
-                }`}>
-                  Consentimento {serviceConsent.granted ? "concedido" : "negado"}
+              {hasConsent ? (
+                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border bg-green-50 text-green-700 border-green-100">
+                  ✓ Dados autorizados (LGPD)
                 </span>
               ) : (
-                <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 border border-slate-200">
-                  Consentimento pendente
-                </span>
+                <ConsentButton patientId={patient.id} />
               )}
             </div>
           </div>
@@ -88,7 +91,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             </h2>
             <AddPrescription patientId={patient.id} />
           </div>
-          {patient.prescriptions.length === 0 ? (
+          {patient.prescriptions.length === 0 && patient.customMedications.length === 0 ? (
             <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">
               Nenhum medicamento cadastrado.
             </p>
@@ -123,6 +126,16 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
               ))}
             </div>
           )}
+
+          <div className="mt-6">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+              Medicamentos avulsos (fora do catálogo)
+            </h3>
+            <CustomMedications
+              patientId={patient.id}
+              initialMeds={patient.customMedications}
+            />
+          </div>
         </section>
 
         <section className="mt-8">

@@ -14,16 +14,30 @@ export function NewPatientForm() {
     e.preventDefault();
     setErrors({});
     const fd = new FormData(e.currentTarget);
+
+    const consentGiven = fd.get("consentGiven") === "on";
+    if (!consentGiven) {
+      setErrors({ consentGiven: "O consentimento do paciente é obrigatório" });
+      return;
+    }
+
+    const ageRaw = String(fd.get("age") ?? "").trim();
     const payload = {
       name: String(fd.get("name") ?? "").trim(),
       phone: normalizePhone(String(fd.get("phone") ?? "").trim()),
       cpf: String(fd.get("cpf") ?? "").replace(/\D/g, "") || undefined,
       sex: (String(fd.get("sex") ?? "") || undefined) as "M" | "F" | "O" | undefined,
+      age: ageRaw ? Number(ageRaw) : undefined,
       comorbidities: String(fd.get("comorbidities") ?? "")
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
+      allergies: String(fd.get("allergies") ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
       notes: String(fd.get("notes") ?? "").trim() || undefined,
+      consentGiven,
     };
 
     startTransition(async () => {
@@ -43,6 +57,7 @@ export function NewPatientForm() {
           setErrors({ ...(json.fieldErrors ?? {}), form: json.error ?? "Falha ao cadastrar" });
           return;
         }
+        router.refresh();
         if (json.patient?.id) {
           router.push(`/patients/${json.patient.id}`);
         } else {
@@ -99,7 +114,7 @@ export function NewPatientForm() {
           <select
             name="sex"
             defaultValue=""
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+            className="select-tech w-full"
           >
             <option value="">—</option>
             <option value="F">Feminino</option>
@@ -108,6 +123,29 @@ export function NewPatientForm() {
           </select>
         </Field>
       </div>
+
+      <Field label="Idade (opcional)" error={errors.age}>
+        <input
+          name="age"
+          type="number"
+          min={0}
+          max={150}
+          placeholder="Ex: 45"
+          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+        />
+      </Field>
+
+      <Field
+        label="Alergias (opcional)"
+        hint="Separe por vírgula. Ex: penicilina, dipirona"
+        error={errors.allergies}
+      >
+        <input
+          name="allergies"
+          placeholder="Ex: penicilina, dipirona"
+          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+        />
+      </Field>
 
       <Field
         label="Comorbidades (opcional)"
@@ -128,9 +166,21 @@ export function NewPatientForm() {
         />
       </Field>
 
-      <div className="rounded-md bg-brand-50 px-3 py-2.5 text-xs text-brand-700 border border-brand-100">
-        Após o cadastro, enviaremos um pedido de consentimento ao paciente via WhatsApp. Os
-        lembretes só começam quando ele aceitar.
+      <div className={`rounded-md px-3 py-3 border ${errors.consentGiven ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-200"}`}>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            name="consentGiven"
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-500"
+          />
+          <span className="text-sm text-slate-700">
+            O paciente autoriza o uso e armazenamento de seus dados conforme a{" "}
+            <span className="font-semibold">LGPD</span> (Lei Geral de Proteção de Dados).
+          </span>
+        </label>
+        {errors.consentGiven ? (
+          <p className="mt-1 text-xs text-red-600 pl-7">{errors.consentGiven}</p>
+        ) : null}
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
@@ -139,7 +189,7 @@ export function NewPatientForm() {
           disabled={pending}
           className="rounded-md bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
         >
-          {pending ? "Cadastrando..." : "Cadastrar e enviar consentimento"}
+          {pending ? "Cadastrando..." : "Cadastrar paciente"}
         </button>
       </div>
     </form>

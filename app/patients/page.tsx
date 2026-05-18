@@ -40,6 +40,11 @@ export default async function PatientsPage({
         where: { status: "ACTIVE" },
         select: { id: true, medication: { select: { brandName: true, dosage: true } } },
       },
+      consents: {
+        where: { scope: "SERVICE", granted: true },
+        select: { id: true },
+        take: 1,
+      },
     },
     orderBy: { createdAt: "desc" },
     take: 100,
@@ -77,7 +82,7 @@ export default async function PatientsPage({
           <select
             name="status"
             defaultValue={status}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+            className="select-tech"
           >
             <option value="ACTIVE">Ativos</option>
             <option value="PAUSED">Pausados</option>
@@ -105,11 +110,13 @@ export default async function PatientsPage({
                   <th className="px-4 py-3 font-semibold">Telefone</th>
                   <th className="px-4 py-3 font-semibold">Medicamentos</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">LGPD</th>
                 </tr>
               </thead>
               <tbody>
                 {patients.map((p) => {
                   const polypharmacy = p.prescriptions.length >= 5;
+                  const hasConsent = p.consentGiven || p.consents.length > 0;
                   return (
                     <tr key={p.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                       <td className="px-4 py-3">
@@ -135,6 +142,9 @@ export default async function PatientsPage({
                       <td className="px-4 py-3">
                         <StatusBadge status={p.status} />
                       </td>
+                      <td className="px-4 py-3">
+                        <ConsentBadge granted={hasConsent} />
+                      </td>
                     </tr>
                   );
                 })}
@@ -157,6 +167,21 @@ function StatusBadge({ status }: { status: "ACTIVE" | "PAUSED" | "WITHDRAWN" }) 
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${m.className}`}>
       {m.label}
+    </span>
+  );
+}
+
+function ConsentBadge({ granted }: { granted: boolean }) {
+  if (granted) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-green-100 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+        ✓ Autorizado
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+      ⚠ Pendente
     </span>
   );
 }

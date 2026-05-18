@@ -4,6 +4,7 @@ import { consentRequest } from "@/lib/whatsapp/templates";
 import type { SessionContext } from "@/lib/auth/permissions";
 import type { CreatePatientInput, CreatePrescriptionInput } from "@/lib/patients/schema";
 import { materializeReminders } from "@/lib/scheduler/dispatch";
+import { ConsentScope } from "@prisma/client";
 
 export class PatientConflictError extends Error {
   status = 409;
@@ -29,12 +30,28 @@ export async function createPatient(ctx: SessionContext, input: CreatePatientInp
       phone,
       cpf: input.cpf || null,
       birthDate: input.birthDate ? new Date(input.birthDate) : null,
+      age: input.age ?? null,
       sex: input.sex,
       comorbidities: input.comorbidities,
+      allergies: input.allergies,
       notes: input.notes,
+      consentGiven: input.consentGiven,
+      consentDate: input.consentGiven ? new Date() : null,
       createdById: ctx.userId,
     },
   });
+
+  if (input.consentGiven) {
+    await prisma.patientConsent.create({
+      data: {
+        patientId: patient.id,
+        scope: ConsentScope.SERVICE,
+        granted: true,
+        termsVersion: "1.0",
+        source: "panel",
+      },
+    }).catch(() => {});
+  }
 
   // Kick off the WhatsApp consent request. We don't await on failure — we
   // record patient regardless so the panel reflects the registration.
