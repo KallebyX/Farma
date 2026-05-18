@@ -28,6 +28,7 @@ export function CustomMedications({
   }
 
   function addMed() {
+    if (pending) return;
     const trimmed = input.trim();
     if (!trimmed) return;
     if (meds.map((m) => m.toLowerCase()).includes(trimmed.toLowerCase())) {
@@ -49,6 +50,7 @@ export function CustomMedications({
   }
 
   function removeMed(med: string) {
+    if (pending) return;
     const newMeds = meds.filter((m) => m !== med);
     setError(null);
     startTransition(async () => {

@@ -17,11 +17,12 @@ export default async function PatientsPage({
 
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim() : "";
-  const status = (typeof params.status === "string" ? params.status : "ACTIVE") as
-    | "ACTIVE"
-    | "PAUSED"
-    | "WITHDRAWN"
-    | "ALL";
+  const STATUS_VALUES = ["ACTIVE", "PAUSED", "WITHDRAWN", "ALL"] as const;
+  type StatusFilter = typeof STATUS_VALUES[number];
+  const rawStatus = typeof params.status === "string" ? params.status : "ACTIVE";
+  const status: StatusFilter = (STATUS_VALUES as readonly string[]).includes(rawStatus)
+    ? (rawStatus as StatusFilter)
+    : "ACTIVE";
 
   const patients = await prisma.patient.findMany({
     where: {
@@ -41,6 +42,12 @@ export default async function PatientsPage({
       prescriptions: {
         where: { status: "ACTIVE" },
         select: { id: true, medication: { select: { brandName: true, dosage: true } } },
+      },
+      consents: {
+        where: { scope: "SERVICE" },
+        select: { granted: true },
+        orderBy: { capturedAt: "desc" as const },
+        take: 1,
       },
     },
     orderBy: { createdAt: "desc" },
@@ -104,6 +111,7 @@ export default async function PatientsPage({
                 <th className="px-4 py-3 font-semibold">Telefone</th>
                 <th className="px-4 py-3 font-semibold hidden sm:table-cell">CPF</th>
                 <th className="px-4 py-3 font-semibold">Medicamentos</th>
+                <th className="px-4 py-3 font-semibold hidden md:table-cell">LGPD</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
               </tr>
             </thead>
@@ -131,6 +139,13 @@ export default async function PatientsPage({
                         <span className="text-slate-400">—</span>
                       ) : (
                         <span>{p.prescriptions.length} ativo{p.prescriptions.length > 1 ? "s" : ""}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      {p.consentGiven || p.consents[0]?.granted ? (
+                        <Badge tone="emerald" size="sm">Sim</Badge>
+                      ) : (
+                        <Badge tone="slate" size="sm">Não</Badge>
                       )}
                     </td>
                     <td className="px-4 py-3">

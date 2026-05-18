@@ -38,7 +38,7 @@ export default async function CatalogPage({
           title="Catálogo de medicamentos"
           subtitle="Base compartilhada usada nas prescrições. Cada item liga ao detentor do registro."
         />
-        <AddMedication />
+        {(ctx.role === "OWNER" || ctx.role === "PHARMACIST") && <AddMedication />}
       </div>
 
       <form className="mt-6 flex gap-2">

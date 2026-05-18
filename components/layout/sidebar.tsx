@@ -66,6 +66,7 @@ export function Sidebar({ pharmacy, user, counts, signOutSlot }: SidebarProps) {
           const isAlert = item.alertKey ? counts[item.alertKey] > 0 : false;
           return (
             <Link key={item.href} href={item.href}
+              aria-current={active ? "page" : undefined}
               className={cx("w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition group",
                 active ? "bg-brand-50 text-brand-900" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}>
               <span className={cx(active ? "text-brand-700" : "text-slate-400 group-hover:text-slate-600")}>

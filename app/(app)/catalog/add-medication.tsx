@@ -88,11 +88,12 @@ export function AddMedication() {
           <div
             role="dialog"
             aria-modal="true"
+            aria-labelledby="add-medication-title"
             className="w-full max-w-lg rounded-xl bg-white shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-              <h2 className="text-base font-semibold text-slate-800">Novo medicamento</h2>
+              <h2 id="add-medication-title" className="text-base font-semibold text-slate-800">Novo medicamento</h2>
               <button
                 onClick={close}
                 aria-label="Fechar modal"
@@ -105,7 +106,7 @@ export function AddMedication() {
             <form onSubmit={onSubmit}>
               <div className="px-5 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
                 {formError ? (
-                  <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 border border-red-100">
+                  <p role="alert" aria-live="assertive" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 border border-red-100">
                     {formError}
                   </p>
                 ) : null}

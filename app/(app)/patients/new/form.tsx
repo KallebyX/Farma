@@ -15,16 +15,23 @@ export function NewPatientForm() {
     e.preventDefault();
     setErrors({});
     const fd = new FormData(e.currentTarget);
+    const rawAge = String(fd.get("age") ?? "").trim();
     const payload = {
       name: String(fd.get("name") ?? "").trim(),
       phone: normalizePhone(String(fd.get("phone") ?? "").trim()),
       cpf: String(fd.get("cpf") ?? "").replace(/\D/g, "") || undefined,
       sex: (String(fd.get("sex") ?? "") || undefined) as "M" | "F" | "O" | undefined,
+      age: rawAge ? parseInt(rawAge, 10) : undefined,
+      allergies: String(fd.get("allergies") ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
       comorbidities: String(fd.get("comorbidities") ?? "")
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
       notes: String(fd.get("notes") ?? "").trim() || undefined,
+      consentGiven: fd.get("consentGiven") === "on",
     };
 
     startTransition(async () => {
@@ -101,6 +108,23 @@ export function NewPatientForm() {
         </Field>
       </div>
 
+      <Field label="Idade (opcional)" error={errors.age}>
+        <Input
+          name="age"
+          type="number"
+          min={0}
+          max={150}
+          placeholder="Ex: 65"
+        />
+      </Field>
+
+      <Field label="Alergias (opcional)" hint="Separe por vírgula" error={errors.allergies}>
+        <Input
+          name="allergies"
+          placeholder="Ex: penicilina, dipirona"
+        />
+      </Field>
+
       <Field label="Comorbidades (opcional)" hint="Separe por vírgula" error={errors.comorbidities}>
         <Input
           name="comorbidities"
@@ -115,6 +139,13 @@ export function NewPatientForm() {
           placeholder="Observações clínicas, alergias, etc."
         />
       </Field>
+
+      <label className="flex items-start gap-2.5 cursor-pointer">
+        <input type="checkbox" name="consentGiven" className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"/>
+        <span className="text-[12.5px] text-slate-700">
+          Paciente já forneceu consentimento LGPD presencialmente
+        </span>
+      </label>
 
       <div className="rounded-lg bg-brand-50 border border-brand-100 px-4 py-3 flex items-start gap-2.5">
         <Icon.WhatsApp size={15} className="text-brand-600 mt-0.5 shrink-0"/>

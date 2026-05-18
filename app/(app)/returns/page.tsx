@@ -28,7 +28,7 @@ export default async function ReturnsPage() {
   const scheduled = expectations.filter((e) => e.status === "SCHEDULED");
   const asked = expectations.filter((e) => e.status === "ASKED");
   const responded = expectations.filter((e) =>
-    ["RESTOCKED_HERE", "RESTOCKED_AWAY", "STOPPING"].includes(e.status),
+    ["RESTOCKED_HERE", "RESTOCKED_AWAY", "STOPPING", "EXPIRED"].includes(e.status),
   );
 
   const lastMonth = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);

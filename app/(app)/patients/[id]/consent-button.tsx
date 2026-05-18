@@ -12,16 +12,20 @@ export function ConsentButton({ patientId }: { patientId: string }) {
   function register() {
     setError(null);
     startTransition(async () => {
-      const res = await fetch(`/api/patients/${patientId}/consent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (res.ok && json.ok) {
-        setDone(true);
-        router.refresh();
-      } else {
-        setError(json.error ?? "Falha ao registrar");
+      try {
+        const res = await fetch(`/api/patients/${patientId}/consent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+        if (res.ok && json.ok) {
+          setDone(true);
+          router.refresh();
+        } else {
+          setError(json.error ?? "Falha ao registrar");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erro inesperado");
       }
     });
   }

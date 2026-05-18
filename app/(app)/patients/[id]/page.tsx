@@ -28,7 +28,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           adherence: { orderBy: { scheduledFor: "desc" }, take: 30 },
         },
       },
-      consents: { orderBy: { capturedAt: "desc" }, take: 5 },
+      consents: { where: { scope: "SERVICE" }, orderBy: { capturedAt: "desc" }, take: 1 },
       ramReports: { orderBy: { createdAt: "desc" }, take: 5 },
     },
   });
@@ -55,7 +55,13 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             <p className="text-[13px] text-slate-500 mt-0.5">
               {patient.phone}
               {patient.cpf ? ` · CPF ${maskCpf(patient.cpf)}` : ""}
+              {patient.age != null ? ` · ${patient.age} anos` : ""}
             </p>
+            {patient.allergies && (patient.allergies as string[]).length > 0 && (
+              <p className="text-[12px] text-rose-600 mt-0.5">
+                Alergias: {(patient.allergies as string[]).join(", ")}
+              </p>
+            )}
             <div className="mt-3 flex flex-wrap gap-2">
               <PatientStatusBadge status={patient.status} />
               {polypharmacy && (
@@ -130,7 +136,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         )}
       </section>
 
-      {patient.customMedications && (patient.customMedications as string[]).length >= 0 && (
+      {patient.customMedications && (patient.customMedications as string[]).length > 0 && (
         <section className="mt-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[13px] font-semibold uppercase tracking-wide text-slate-600">
