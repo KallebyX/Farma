@@ -12,23 +12,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     prisma.pharmacy.findUnique({
       where: { id: ctx.pharmacyId },
       select: { fantasia: true, razaoSocial: true, cnpj: true },
-    }),
+    }).catch(() => null),
     prisma.user.findUnique({
       where: { id: ctx.userId },
       select: { name: true, email: true },
-    }),
+    }).catch(() => null),
     prisma.rAMReport.count({
       where: { patient: { pharmacyId: ctx.pharmacyId }, status: "PENDING_REVIEW" },
-    }),
+    }).catch(() => 0),
     prisma.rAMReport.count({
       where: { patient: { pharmacyId: ctx.pharmacyId }, status: "PENDING_REVIEW", severity: "SEVERE" },
-    }),
+    }).catch(() => 0),
     prisma.returnExpectation.count({
       where: { prescription: { patient: { pharmacyId: ctx.pharmacyId } }, status: "ASKED" },
-    }),
+    }).catch(() => 0),
     prisma.patient.count({
       where: { pharmacyId: ctx.pharmacyId, status: "ACTIVE" },
-    }),
+    }).catch(() => 0),
   ]);
 
   return (

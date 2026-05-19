@@ -11,21 +11,21 @@ export default async function DashboardPage() {
   if (!ctx) redirect("/sign-in");
 
   const [pharmacy, user, memberCount, pendingInvites, patientCount, ramPending, ramSevere, returnsAsked, restockedMonth] = await Promise.all([
-    prisma.pharmacy.findUnique({ where: { id: ctx.pharmacyId }, select: { fantasia: true, razaoSocial: true } }),
-    prisma.user.findUnique({ where: { id: ctx.userId }, select: { name: true } }),
-    prisma.membership.count({ where: { pharmacyId: ctx.pharmacyId, status: "ACTIVE" } }),
-    prisma.invitation.count({ where: { pharmacyId: ctx.pharmacyId, status: "PENDING" } }),
-    prisma.patient.count({ where: { pharmacyId: ctx.pharmacyId, status: "ACTIVE" } }),
-    prisma.rAMReport.count({ where: { patient: { pharmacyId: ctx.pharmacyId }, status: "PENDING_REVIEW" } }),
-    prisma.rAMReport.count({ where: { patient: { pharmacyId: ctx.pharmacyId }, status: "PENDING_REVIEW", severity: "SEVERE" } }),
-    prisma.returnExpectation.count({ where: { prescription: { patient: { pharmacyId: ctx.pharmacyId } }, status: "ASKED" } }),
+    prisma.pharmacy.findUnique({ where: { id: ctx.pharmacyId }, select: { fantasia: true, razaoSocial: true } }).catch(() => null),
+    prisma.user.findUnique({ where: { id: ctx.userId }, select: { name: true } }).catch(() => null),
+    prisma.membership.count({ where: { pharmacyId: ctx.pharmacyId, status: "ACTIVE" } }).catch(() => 0),
+    prisma.invitation.count({ where: { pharmacyId: ctx.pharmacyId, status: "PENDING" } }).catch(() => 0),
+    prisma.patient.count({ where: { pharmacyId: ctx.pharmacyId, status: "ACTIVE" } }).catch(() => 0),
+    prisma.rAMReport.count({ where: { patient: { pharmacyId: ctx.pharmacyId }, status: "PENDING_REVIEW" } }).catch(() => 0),
+    prisma.rAMReport.count({ where: { patient: { pharmacyId: ctx.pharmacyId }, status: "PENDING_REVIEW", severity: "SEVERE" } }).catch(() => 0),
+    prisma.returnExpectation.count({ where: { prescription: { patient: { pharmacyId: ctx.pharmacyId } }, status: "ASKED" } }).catch(() => 0),
     prisma.returnExpectation.count({
       where: {
         prescription: { patient: { pharmacyId: ctx.pharmacyId } },
         status: "RESTOCKED_HERE",
         respondedAt: { gte: new Date(Date.now() - 30 * 86400000) },
       },
-    }),
+    }).catch(() => 0),
   ]);
 
   const firstName = user?.name?.split(" ")[0] ?? "tudo bem";
