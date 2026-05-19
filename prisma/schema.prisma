@@ -194,11 +194,16 @@ model Patient {
   cpf         String?       // optional; some patients won't share
   phone       String        // E.164, used for WhatsApp
   birthDate   DateTime?
+  age         Int?
   // clinical (less sensitive in isolation; useful for cohort queries)
   sex         String?       // M | F | O | null
   comorbidities String[]    @default([])
+  allergies   String[]      @default([])
+  customMedications String[] @default([])
   notes       String?
   status      PatientStatus @default(ACTIVE)
+  consentGiven Boolean      @default(false)
+  consentDate DateTime?
   createdById String
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt

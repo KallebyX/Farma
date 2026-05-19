@@ -2,16 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Role, InvitationChannel } from "@prisma/client";
+type Role = "OWNER" | "PHARMACIST" | "ATTENDANT" | "READONLY";
+type InvitationChannel = "EMAIL" | "WHATSAPP" | "LINK";
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
-  { value: Role.PHARMACIST, label: "Farmacêutico responsável" },
-  { value: Role.ATTENDANT, label: "Atendente" },
-  { value: Role.READONLY, label: "Somente leitura" },
+  { value: "PHARMACIST", label: "Farmacêutico responsável" },
+  { value: "ATTENDANT", label: "Atendente" },
+  { value: "READONLY", label: "Somente leitura" },
 ];
 
 const ROLE_OPTIONS_OWNER: { value: Role; label: string }[] = [
-  { value: Role.OWNER, label: "Proprietário" },
+  { value: "OWNER", label: "Proprietário" },
   ...ROLE_OPTIONS,
 ];
 
@@ -26,17 +27,17 @@ export function InviteModal({ currentRole }: { currentRole: Role }) {
   const [createdSummary, setCreatedSummary] = useState<
     { channel: string; status: string; error?: string }[] | null
   >(null);
-  const [role, setRole] = useState<Role>(Role.ATTENDANT);
-  const [channels, setChannels] = useState<InvitationChannel[]>([InvitationChannel.EMAIL, InvitationChannel.LINK]);
+  const [role, setRole] = useState<Role>("ATTENDANT");
+  const [channels, setChannels] = useState<InvitationChannel[]>(["EMAIL", "LINK"]);
 
-  const roleOptions = currentRole === Role.OWNER ? ROLE_OPTIONS_OWNER : ROLE_OPTIONS;
+  const roleOptions = currentRole === "OWNER" ? ROLE_OPTIONS_OWNER : ROLE_OPTIONS;
 
   function reset() {
     setErrors({});
     setCreatedLink(null);
     setCreatedSummary(null);
-    setRole(Role.ATTENDANT);
-    setChannels([InvitationChannel.EMAIL, InvitationChannel.LINK]);
+    setRole("ATTENDANT");
+    setChannels(["EMAIL", "LINK"]);
   }
 
   function close() {
@@ -167,7 +168,7 @@ export function InviteModal({ currentRole }: { currentRole: Role }) {
                   </select>
                 </Field>
 
-                {role === Role.PHARMACIST ? (
+                {role === "PHARMACIST" ? (
                   <Field
                     label="CRF"
                     hint="Obrigatório para farmacêutico responsável"
@@ -189,20 +190,20 @@ export function InviteModal({ currentRole }: { currentRole: Role }) {
                     <ChannelOption
                       label="Email"
                       description="Convite formal com link de aceite"
-                      checked={channels.includes(InvitationChannel.EMAIL)}
-                      onChange={() => toggleChannel(InvitationChannel.EMAIL)}
+                      checked={channels.includes("EMAIL")}
+                      onChange={() => toggleChannel("EMAIL")}
                     />
                     <ChannelOption
                       label="WhatsApp"
                       description="Mensagem direta com link (requer telefone)"
-                      checked={channels.includes(InvitationChannel.WHATSAPP)}
-                      onChange={() => toggleChannel(InvitationChannel.WHATSAPP)}
+                      checked={channels.includes("WHATSAPP")}
+                      onChange={() => toggleChannel("WHATSAPP")}
                     />
                     <ChannelOption
                       label="Link copiável"
                       description="Mostra o link na tela para você compartilhar como preferir"
-                      checked={channels.includes(InvitationChannel.LINK)}
-                      onChange={() => toggleChannel(InvitationChannel.LINK)}
+                      checked={channels.includes("LINK")}
+                      onChange={() => toggleChannel("LINK")}
                     />
                   </div>
                   {errors.channels ? (
@@ -210,7 +211,7 @@ export function InviteModal({ currentRole }: { currentRole: Role }) {
                   ) : null}
                 </fieldset>
 
-                {channels.includes(InvitationChannel.WHATSAPP) ? (
+                {channels.includes("WHATSAPP") ? (
                   <Field
                     label="Telefone"
                     hint="Formato internacional: +5511999999999"
