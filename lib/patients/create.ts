@@ -4,6 +4,7 @@ import { consentRequest } from "@/lib/whatsapp/templates";
 import type { SessionContext } from "@/lib/auth/permissions";
 import type { CreatePatientInput, CreatePrescriptionInput } from "@/lib/patients/schema";
 import { materializeReminders } from "@/lib/scheduler/dispatch";
+import { ConsentScope, Prisma } from "@prisma/client";
 
 export class PatientConflictError extends Error {
   status = 409;
@@ -22,19 +23,47 @@ export async function createPatient(ctx: SessionContext, input: CreatePatientInp
     select: { fantasia: true, razaoSocial: true },
   });
 
-  const patient = await prisma.patient.create({
-    data: {
-      pharmacyId: ctx.pharmacyId,
-      name: input.name,
-      phone,
-      cpf: input.cpf || null,
-      birthDate: input.birthDate ? new Date(input.birthDate) : null,
-      sex: input.sex,
-      comorbidities: input.comorbidities,
-      notes: input.notes,
-      createdById: ctx.userId,
-    },
-  });
+  let patient;
+  try {
+    patient = await prisma.$transaction(async (tx) => {
+      const p = await tx.patient.create({
+        data: {
+          pharmacyId: ctx.pharmacyId,
+          name: input.name,
+          phone,
+          cpf: input.cpf || null,
+          birthDate: input.birthDate ? new Date(input.birthDate) : null,
+          age: input.age ?? null,
+          sex: input.sex,
+          comorbidities: input.comorbidities,
+          allergies: input.allergies,
+          notes: input.notes,
+          consentGiven: input.consentGiven,
+          consentDate: input.consentGiven ? new Date() : null,
+          createdById: ctx.userId,
+        },
+      });
+
+      if (input.consentGiven) {
+        await tx.patientConsent.create({
+          data: {
+            patientId: p.id,
+            scope: ConsentScope.SERVICE,
+            granted: true,
+            termsVersion: "1.0",
+            source: "panel",
+          },
+        });
+      }
+
+      return p;
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      throw new PatientConflictError("Já existe um paciente com este telefone");
+    }
+    throw error;
+  }
 
   // Kick off the WhatsApp consent request. We don't await on failure — we
   // record patient regardless so the panel reflects the registration.
