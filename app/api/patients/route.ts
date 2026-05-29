@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { tenantDb } from "@/lib/db";
 import { requireSession } from "@/lib/auth/session";
 import { ForbiddenError, UnauthorizedError, isAtLeast } from "@/lib/auth/permissions";
 import { Role } from "@prisma/client";
@@ -9,11 +9,12 @@ import { createPatient, PatientConflictError } from "@/lib/patients/create";
 export async function GET(req: Request) {
   try {
     const ctx = await requireSession();
+    const db = tenantDb(ctx.pharmacyId);
     const url = new URL(req.url);
     const q = url.searchParams.get("q")?.trim() ?? "";
     const status = url.searchParams.get("status") ?? "ACTIVE";
 
-    const patients = await prisma.patient.findMany({
+    const patients = await db.patient.findMany({
       where: {
         pharmacyId: ctx.pharmacyId,
         ...(status !== "ALL" ? { status: status as "ACTIVE" | "PAUSED" | "WITHDRAWN" } : {}),
