@@ -1,6 +1,6 @@
 import argon2 from "argon2";
 import { z } from "zod";
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 /** Current terms/consent version captured at signup. */
@@ -61,21 +61,34 @@ export async function registerAccount(input: RegisterInput): Promise<RegisterRes
   const passwordHash = await argon2.hash(input.password);
   const fantasia = input.fantasia?.trim() ? input.fantasia.trim() : null;
 
-  return prisma.$transaction(async (tx) => {
-    const pharmacy = await tx.pharmacy.create({
-      data: { cnpj, razaoSocial: input.pharmacyName, fantasia },
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const pharmacy = await tx.pharmacy.create({
+        data: { cnpj, razaoSocial: input.pharmacyName, fantasia },
+      });
+      const user = await tx.user.create({
+        data: {
+          email,
+          name: input.name,
+          passwordHash,
+          consentVersion: TERMS_VERSION,
+        },
+      });
+      await tx.membership.create({
+        data: { userId: user.id, pharmacyId: pharmacy.id, role: Role.OWNER },
+      });
+      return { userId: user.id, pharmacyId: pharmacy.id, email };
     });
-    const user = await tx.user.create({
-      data: {
-        email,
-        name: input.name,
-        passwordHash,
-        consentVersion: TERMS_VERSION,
-      },
-    });
-    await tx.membership.create({
-      data: { userId: user.id, pharmacyId: pharmacy.id, role: Role.OWNER },
-    });
-    return { userId: user.id, pharmacyId: pharmacy.id, email };
-  });
+  } catch (err) {
+    // Unique-constraint race between the pre-check and the insert: keep the 409
+    // contract instead of surfacing a 500.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      const target = String(err.meta?.target ?? "");
+      if (target.includes("cnpj")) {
+        throw new RegisterConflictError("Já existe uma farmácia com este CNPJ", "cnpj");
+      }
+      throw new RegisterConflictError("Já existe uma conta com este email", "email");
+    }
+    throw err;
+  }
 }

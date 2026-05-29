@@ -116,11 +116,11 @@ export function SignUpForm() {
         <input type="checkbox" name="consent" className="mt-0.5" />
         <span>
           Li e aceito os{" "}
-          <a href="/legal/terms" target="_blank" className="text-brand-600 hover:underline">
+          <a href="/legal/terms" target="_blank" rel="noreferrer noopener" className="text-brand-600 hover:underline">
             Termos de Uso
           </a>{" "}
           e a{" "}
-          <a href="/legal/privacy" target="_blank" className="text-brand-600 hover:underline">
+          <a href="/legal/privacy" target="_blank" rel="noreferrer noopener" className="text-brand-600 hover:underline">
             Política de Privacidade
           </a>
           .

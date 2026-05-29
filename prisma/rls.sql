@@ -23,6 +23,24 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO farma_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO farma_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO farma_app;
 
+-- Enable RLS so the policies below are actually enforced. Idempotent. We do NOT
+-- FORCE: the privileged role (migrations/cron/auth) must keep bypassing RLS.
+ALTER TABLE "Pharmacy"           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Membership"         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Invitation"         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "InvitationDelivery" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Patient"            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "PatientConsent"     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Prescription"       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ReminderJob"        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AdherenceEvent"     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "RAMReport"          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ReturnExpectation"  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "BotConversation"    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "MedicationCatalog"  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "User"               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Session"            ENABLE ROW LEVEL SECURITY;
+
 -- Direct pharmacyId tables --------------------------------------------------
 DROP POLICY IF EXISTS tenant_isolation ON "Pharmacy";
 CREATE POLICY tenant_isolation ON "Pharmacy" TO farma_app
@@ -127,4 +145,11 @@ DROP POLICY IF EXISTS app_no_access ON "Session";
 CREATE POLICY app_no_access ON "Session" TO farma_app USING (false) WITH CHECK (false);
 
 -- Close the anon-executable SECURITY DEFINER helper flagged by the linter.
-REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM anon, authenticated, PUBLIC;
+-- Guarded: the function/roles only exist on Supabase, so ignore their absence
+-- to keep this script idempotent across plain Postgres environments.
+DO $$
+BEGIN
+  REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM anon, authenticated, PUBLIC;
+EXCEPTION
+  WHEN undefined_function OR undefined_object THEN NULL;
+END$$;

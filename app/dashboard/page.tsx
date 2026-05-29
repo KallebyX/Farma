@@ -12,8 +12,9 @@ export default async function DashboardPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/sign-in");
 
-  const memberships = await listMemberships(ctx.userId);
-  const [pharmacy, user, memberCount, pendingInvites, patientCount, ramPending] = await Promise.all([
+  const [memberships, pharmacy, user, memberCount, pendingInvites, patientCount, ramPending] =
+    await Promise.all([
+    listMemberships(ctx.userId),
     prisma.pharmacy.findUnique({ where: { id: ctx.pharmacyId } }),
     prisma.user.findUnique({ where: { id: ctx.userId } }),
     prisma.membership.count({ where: { pharmacyId: ctx.pharmacyId, status: "ACTIVE" } }),
