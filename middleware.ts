@@ -7,6 +7,7 @@ const { auth } = NextAuth(authEdgeConfig);
 const PUBLIC_PATHS = [
   /^\/$/,
   /^\/sign-in$/,
+  /^\/demo\//,
   /^\/legal\//,
   /^\/accept-invite\//,
   /^\/api\/accept-invite\//,

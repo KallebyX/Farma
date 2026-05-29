@@ -20,6 +20,12 @@ export default function Home() {
           >
             Entrar na plataforma
           </Link>
+          <Link
+            href="/demo/prontuario"
+            className="rounded-lg border border-brand-200 px-5 py-3 text-sm font-semibold text-brand-700 hover:bg-brand-50"
+          >
+            Ver demo do paciente
+          </Link>
         </div>
       </div>
     </main>
