@@ -13,10 +13,16 @@ export default function Home() {
         <p className="mt-4 text-slate-600">
           Plataforma de lembretes de medicação e notificação de reações adversas para farmácias.
         </p>
-        <div className="mt-8 flex justify-center gap-3">
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            href="/sign-up"
+            className="rounded-lg bg-brand-500 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-600"
+          >
+            Cadastrar minha farmácia
+          </Link>
           <Link
             href="/sign-in"
-            className="rounded-lg bg-brand-500 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-600"
+            className="rounded-lg border border-brand-200 px-5 py-3 text-sm font-semibold text-brand-700 hover:bg-brand-50"
           >
             Entrar na plataforma
           </Link>

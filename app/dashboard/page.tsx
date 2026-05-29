@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { roleLabel } from "@/lib/auth/permissions";
-import { getSessionContext } from "@/lib/auth/session";
+import { getSessionContext, listMemberships } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { signOut } from "@/lib/auth/config";
+import { TenantSwitcher } from "./tenant-switcher";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export default async function DashboardPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/sign-in");
 
+  const memberships = await listMemberships(ctx.userId);
   const [pharmacy, user, memberCount, pendingInvites, patientCount, ramPending] = await Promise.all([
     prisma.pharmacy.findUnique({ where: { id: ctx.pharmacyId } }),
     prisma.user.findUnique({ where: { id: ctx.userId } }),
@@ -47,11 +49,14 @@ export default async function DashboardPage() {
               Você está logado como {roleLabel(ctx.role)}.
             </p>
           </div>
-          <form action={handleSignOut}>
-            <button type="submit" className="text-sm text-slate-500 hover:text-slate-700">
-              Sair
-            </button>
-          </form>
+          <div className="flex items-center gap-4">
+            <TenantSwitcher memberships={memberships} activePharmacyId={ctx.pharmacyId} />
+            <form action={handleSignOut}>
+              <button type="submit" className="text-sm text-slate-500 hover:text-slate-700">
+                Sair
+              </button>
+            </form>
+          </div>
         </div>
 
         <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">

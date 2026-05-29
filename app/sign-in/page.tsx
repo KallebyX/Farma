@@ -73,7 +73,13 @@ export default async function SignInPage({
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-slate-500">
+        <p className="mt-6 text-center text-sm text-slate-600">
+          Ainda não tem conta?{" "}
+          <Link href="/sign-up" className="font-semibold text-brand-600 hover:underline">
+            Cadastrar minha farmácia
+          </Link>
+        </p>
+        <p className="mt-3 text-center text-xs text-slate-500">
           Recebeu um convite? Use o link enviado por email ou WhatsApp.
           <br />
           <Link href="/" className="text-brand-600 hover:underline">
