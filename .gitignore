@@ -1,4 +1,5 @@
 node_modules
+.claude
 .next
 out
 .env
@@ -12,3 +13,4 @@ playwright-report
 test-results
 next-env.d.ts
 tsconfig.tsbuildinfo
+.seed-password

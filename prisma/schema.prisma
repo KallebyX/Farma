@@ -158,6 +158,7 @@ enum DosageForm {
 
 model MedicationCatalog {
   id                 String     @id @default(uuid())
+  cmedGgrem          String?    @unique  // CMED código GGREM (Anvisa regulatory ID, also row key for sync)
   activeIngredient   String
   brandName          String
   dosage             String     // e.g. "50mg", "10mg/ml"
@@ -167,12 +168,15 @@ model MedicationCatalog {
   anvisaCode         String?
   ean                String?
   therapeuticClass   String?
+  productType        String?    // CMED tipo: NEUTRO | GENÉRICO | SIMILAR | NOVO | ESPECÍFICO | BIOLÓGICO
+  pmcMax             Decimal?   @db.Decimal(12, 4) // PMC máximo (preço máximo ao consumidor, alíquota mais alta)
   createdAt          DateTime   @default(now())
 
   prescriptions Prescription[]
 
   @@index([activeIngredient])
   @@index([brandName])
+  @@index([pmcMax])
   @@unique([brandName, dosage, form, manufacturerCnpj])
 }
 
@@ -194,11 +198,16 @@ model Patient {
   cpf         String?       // optional; some patients won't share
   phone       String        // E.164, used for WhatsApp
   birthDate   DateTime?
+  age         Int?
   // clinical (less sensitive in isolation; useful for cohort queries)
   sex         String?       // M | F | O | null
   comorbidities String[]    @default([])
+  allergies   String[]      @default([])
+  customMedications String[] @default([])
   notes       String?
   status      PatientStatus @default(ACTIVE)
+  consentGiven Boolean      @default(false)
+  consentDate DateTime?
   createdById String
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt

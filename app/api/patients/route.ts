@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { tenantDb } from "@/lib/db";
 import { requireSession } from "@/lib/auth/session";
 import { ForbiddenError, UnauthorizedError, isAtLeast } from "@/lib/auth/permissions";
@@ -78,6 +79,7 @@ export async function POST(req: Request) {
     }
 
     const patient = await createPatient(ctx, parsed.data);
+    revalidatePath("/patients");
     return NextResponse.json({ ok: true, patient });
   } catch (err) {
     return errorResponse(err);

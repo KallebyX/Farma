@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "vercel-build": "prisma generate && ([ -z \"$DIRECT_URL\" ] || prisma db push --skip-generate || echo 'Warning: db push failed, continuing') && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -16,7 +17,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "expire-invitations": "tsx scripts/expire-invitations.ts",
-    "check:env": "tsx scripts/check-env.ts"
+    "check:env": "tsx scripts/check-env.ts",
+    "cmed:sync": "tsx scripts/cmed-sync.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

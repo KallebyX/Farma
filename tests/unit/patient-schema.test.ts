@@ -9,7 +9,11 @@ describe("createPatientSchema", () => {
     expect(createPatientSchema.safeParse({}).success).toBe(false);
     expect(createPatientSchema.safeParse({ name: "M", phone: "+5511999999999" }).success).toBe(false);
     expect(
-      createPatientSchema.safeParse({ name: "Maria Silva", phone: "+5511999999999" }).success,
+      createPatientSchema.safeParse({
+        name: "Maria Silva",
+        phone: "+5511999999999",
+        consentGiven: true,
+      }).success,
     ).toBe(true);
   });
 
@@ -33,6 +37,7 @@ describe("createPatientSchema", () => {
       phone: "+5511999999999",
       cpf: "",
       birthDate: "",
+      consentGiven: true,
     });
     expect(r.success).toBe(true);
   });

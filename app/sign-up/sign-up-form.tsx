@@ -3,9 +3,21 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-type FieldErrors = Partial<
-  Record<"pharmacyName" | "fantasia" | "cnpj" | "name" | "email" | "password" | "consent" | "form", string>
->;
+type FieldKey =
+  | "name"
+  | "email"
+  | "password"
+  | "confirmPassword"
+  | "razaoSocial"
+  | "fantasia"
+  | "cnpj"
+  | "consent"
+  | "form";
+
+type FieldErrors = Partial<Record<FieldKey, string>>;
+
+const inputCls =
+  "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500";
 
 export function SignUpForm() {
   const router = useRouter();
@@ -17,18 +29,19 @@ export function SignUpForm() {
     setErrors({});
     const fd = new FormData(e.currentTarget);
     const payload = {
-      pharmacyName: String(fd.get("pharmacyName") ?? ""),
-      fantasia: String(fd.get("fantasia") ?? ""),
-      cnpj: String(fd.get("cnpj") ?? ""),
       name: String(fd.get("name") ?? ""),
       email: String(fd.get("email") ?? ""),
       password: String(fd.get("password") ?? ""),
+      confirmPassword: String(fd.get("confirmPassword") ?? ""),
+      razaoSocial: String(fd.get("razaoSocial") ?? ""),
+      fantasia: String(fd.get("fantasia") ?? ""),
+      cnpj: String(fd.get("cnpj") ?? ""),
       consent: fd.get("consent") === "on",
     };
 
     startTransition(async () => {
       try {
-        const res = await fetch("/api/auth/register", {
+        const res = await fetch("/api/sign-up", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -41,33 +54,40 @@ export function SignUpForm() {
         };
 
         if (!res.ok || !json.ok) {
+          const fe = json.fieldErrors ?? {};
           setErrors({
-            ...(json.fieldErrors ?? {}),
-            form: json.error ?? "Não foi possível criar a conta",
+            ...fe,
+            form: Object.keys(fe).length === 0 ? json.error ?? "Não foi possível criar a conta" : undefined,
           });
           return;
         }
 
-        // Auto-login with the credentials we just created, then go to dashboard.
         const target = json.redirectTo ?? "/dashboard";
-        const loginRes = await fetch("/api/auth/callback/credentials", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            email: payload.email,
-            password: payload.password,
-            redirect: "false",
-            callbackUrl: target,
-          }),
-          redirect: "manual",
-        }).catch(() => null);
 
-        if (loginRes && loginRes.status >= 400) {
+        try {
+          const csrfRes = await fetch("/api/auth/csrf", { credentials: "include" });
+          const { csrfToken } = (await csrfRes.json()) as { csrfToken: string };
+
+          await fetch("/api/auth/callback/credentials", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              csrfToken,
+              email: payload.email,
+              password: payload.password,
+              redirect: "false",
+              callbackUrl: target,
+            }),
+            redirect: "manual",
+          });
+        } catch {
           router.replace(`/sign-in?from=${encodeURIComponent(target)}`);
-        } else {
-          router.replace(target);
-          router.refresh();
+          return;
         }
+
+        router.replace(target);
+        router.refresh();
       } catch (err) {
         setErrors({ form: err instanceof Error ? err.message : "Erro inesperado" });
       }
@@ -75,62 +95,116 @@ export function SignUpForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4" noValidate>
       {errors.form ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 border border-red-100">
           {errors.form}
         </p>
       ) : null}
 
-      <Field label="Razão social da farmácia" error={errors.pharmacyName}>
-        <input name="pharmacyName" type="text" required minLength={2} maxLength={160}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-      </Field>
-
-      <Field label="Nome fantasia (opcional)" error={errors.fantasia}>
-        <input name="fantasia" type="text" maxLength={120}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-      </Field>
-
-      <Field label="CNPJ" hint="Apenas números" error={errors.cnpj}>
-        <input name="cnpj" type="text" inputMode="numeric" required
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-      </Field>
-
       <Field label="Seu nome completo" error={errors.name}>
-        <input name="name" type="text" autoComplete="name" required minLength={2} maxLength={120}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+        <input
+          name="name"
+          type="text"
+          autoComplete="name"
+          required
+          minLength={2}
+          maxLength={120}
+          className={inputCls}
+        />
       </Field>
 
       <Field label="Email" error={errors.email}>
-        <input name="email" type="email" autoComplete="email" required
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+        <input
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          className={inputCls}
+        />
       </Field>
 
-      <Field label="Senha" hint="Mínimo 8 caracteres" error={errors.password}>
-        <input name="password" type="password" autoComplete="new-password" required minLength={8}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Senha" hint="Mínimo 8 caracteres" error={errors.password}>
+          <input
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Confirme a senha" error={errors.confirmPassword}>
+          <input
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            className={inputCls}
+          />
+        </Field>
+      </div>
+
+      <hr className="border-slate-200" />
+      <p className="text-xs font-bold tracking-[0.15em] text-slate-500 uppercase">
+        Dados da farmácia
+      </p>
+
+      <Field label="Razão social" error={errors.razaoSocial}>
+        <input
+          name="razaoSocial"
+          type="text"
+          required
+          minLength={2}
+          maxLength={200}
+          className={inputCls}
+        />
+      </Field>
+
+      <Field label="Nome fantasia" hint="Opcional" error={errors.fantasia}>
+        <input name="fantasia" type="text" maxLength={200} className={inputCls} />
+      </Field>
+
+      <Field label="CNPJ" hint="14 dígitos, com ou sem pontuação" error={errors.cnpj}>
+        <input
+          name="cnpj"
+          type="text"
+          required
+          inputMode="numeric"
+          placeholder="00.000.000/0000-00"
+          className={inputCls}
+        />
       </Field>
 
       <label className="flex items-start gap-2 text-xs text-slate-600 leading-relaxed">
-        <input type="checkbox" name="consent" className="mt-0.5" />
+        <input
+          type="checkbox"
+          name="consent"
+          required
+          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500"
+        />
         <span>
           Li e aceito os{" "}
-          <a href="/legal/terms" target="_blank" rel="noreferrer noopener" className="text-brand-600 hover:underline">
+          <a href="/legal/terms" className="text-brand-600 hover:underline" target="_blank" rel="noreferrer">
             Termos de Uso
           </a>{" "}
           e a{" "}
-          <a href="/legal/privacy" target="_blank" rel="noreferrer noopener" className="text-brand-600 hover:underline">
+          <a href="/legal/privacy" className="text-brand-600 hover:underline" target="_blank" rel="noreferrer">
             Política de Privacidade
           </a>
-          .
+          , conforme a LGPD. Entendo que dados de saúde são sensíveis e tratados com sigilo.
         </span>
       </label>
       {errors.consent ? <p className="text-xs text-red-600">{errors.consent}</p> : null}
 
-      <button type="submit" disabled={pending}
-        className="w-full rounded-md bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60">
-        {pending ? "Criando conta..." : "Criar conta"}
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full rounded-md bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {pending ? "Criando conta..." : "Criar conta e entrar"}
       </button>
     </form>
   );
@@ -150,9 +224,9 @@ function Field({
   return (
     <div>
       <label className="block text-sm font-medium text-slate-700">{label}</label>
+      {hint ? <p className="text-xs text-slate-500 mt-0.5">{hint}</p> : null}
       <div className="mt-1">{children}</div>
-      {hint && !error ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
-      {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-red-600 mt-1">{error}</p> : null}
     </div>
   );
 }

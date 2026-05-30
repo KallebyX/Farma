@@ -55,16 +55,37 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     const session = await requireSession();
     const db = tenantDb(session.pharmacyId);
     const { id } = await ctx.params;
-    const body = (await req.json().catch(() => ({}))) as { status?: PatientStatus };
-
-    if (!body.status || !Object.values(PatientStatus).includes(body.status)) {
-      return NextResponse.json({ ok: false, error: "Status inválido" }, { status: 400 });
-    }
+    const body = (await req.json().catch(() => ({}))) as {
+      status?: PatientStatus;
+      customMedications?: string[];
+    };
 
     const patient = await db.patient.findFirst({
       where: { id, pharmacyId: session.pharmacyId },
     });
     if (!patient) return NextResponse.json({ ok: false, error: "Não encontrado" }, { status: 404 });
+
+    if (body.customMedications !== undefined) {
+      if (!Array.isArray(body.customMedications)) {
+        return NextResponse.json({ ok: false, error: "customMedications deve ser um array" }, { status: 400 });
+      }
+      if (!body.customMedications.every((m) => typeof m === "string")) {
+        return NextResponse.json(
+          { ok: false, error: "customMedications deve conter apenas strings" },
+          { status: 400 },
+        );
+      }
+      const normalized = body.customMedications.map((m) => m.trim()).filter(Boolean);
+      const updated = await db.patient.update({
+        where: { id },
+        data: { customMedications: normalized },
+      });
+      return NextResponse.json({ ok: true, patient: updated });
+    }
+
+    if (!body.status || !Object.values(PatientStatus).includes(body.status)) {
+      return NextResponse.json({ ok: false, error: "Status inválido" }, { status: 400 });
+    }
 
     const updated = await db.patient.update({
       where: { id },
