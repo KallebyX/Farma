@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSessionContext } from "@/lib/auth/session";
+import { getSessionContext, listMemberships } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { PageShell, PageHeader, Card, Icon } from "@/components/ui";
+import { TenantSwitcher } from "./tenant-switcher";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export default async function DashboardPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/sign-in");
 
+  const memberships = await listMemberships(ctx.userId);
   const [pharmacy, user, memberCount, pendingInvites, patientCount, ramPending, ramSevere, returnsAsked, restockedMonth] = await Promise.all([
     prisma.pharmacy.findUnique({ where: { id: ctx.pharmacyId }, select: { fantasia: true, razaoSocial: true } }).catch(() => null),
     prisma.user.findUnique({ where: { id: ctx.userId }, select: { name: true } }).catch(() => null),
@@ -38,6 +40,7 @@ export default async function DashboardPage() {
           title={`Olá, ${firstName}`}
           subtitle="Visão geral da sua farmácia hoje."
         />
+        <TenantSwitcher memberships={memberships} activePharmacyId={ctx.pharmacyId} />
       </div>
 
       <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">

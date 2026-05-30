@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { tenantDb } from "@/lib/db";
 import { requireSession } from "@/lib/auth/session";
 import { UnauthorizedError } from "@/lib/auth/permissions";
 import { PatientStatus } from "@prisma/client";
@@ -7,9 +7,10 @@ import { PatientStatus } from "@prisma/client";
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireSession();
+    const db = tenantDb(session.pharmacyId);
     const { id } = await ctx.params;
 
-    const patient = await prisma.patient.findFirst({
+    const patient = await db.patient.findFirst({
       where: { id, pharmacyId: session.pharmacyId },
       include: {
         prescriptions: {
@@ -52,13 +53,14 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireSession();
+    const db = tenantDb(session.pharmacyId);
     const { id } = await ctx.params;
     const body = (await req.json().catch(() => ({}))) as {
       status?: PatientStatus;
       customMedications?: string[];
     };
 
-    const patient = await prisma.patient.findFirst({
+    const patient = await db.patient.findFirst({
       where: { id, pharmacyId: session.pharmacyId },
     });
     if (!patient) return NextResponse.json({ ok: false, error: "Não encontrado" }, { status: 404 });
@@ -74,7 +76,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         );
       }
       const normalized = body.customMedications.map((m) => m.trim()).filter(Boolean);
-      const updated = await prisma.patient.update({
+      const updated = await db.patient.update({
         where: { id },
         data: { customMedications: normalized },
       });
@@ -85,13 +87,13 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       return NextResponse.json({ ok: false, error: "Status inválido" }, { status: 400 });
     }
 
-    const updated = await prisma.patient.update({
+    const updated = await db.patient.update({
       where: { id },
       data: { status: body.status },
     });
 
     if (body.status === "PAUSED" || body.status === "WITHDRAWN") {
-      await prisma.prescription.updateMany({
+      await db.prescription.updateMany({
         where: { patientId: id, status: "ACTIVE" },
         data: { status: "PAUSED" },
       });

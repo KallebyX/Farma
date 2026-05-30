@@ -91,8 +91,8 @@ export default async function SignInPage({
         <p className="mt-2 text-center text-xs text-slate-500">
           Recebeu um convite? Use o link enviado por email ou WhatsApp.
           <br />
-          <Link href="/" className="text-brand-600 hover:underline">
-            ← voltar
+          <Link href="/demo/prontuario" className="text-brand-600 hover:underline">
+            Ver demo da visão do paciente
           </Link>
         </p>
       </div>

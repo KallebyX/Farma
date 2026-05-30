@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
   /^\/$/,
   /^\/sign-in$/,
   /^\/sign-up$/,
+  /^\/demo\//,
   /^\/legal\//,
   /^\/accept-invite\//,
   /^\/api\/accept-invite\//,
