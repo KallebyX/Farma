@@ -7,7 +7,6 @@ import { AddPrescription } from "./add-prescription";
 import { ConsentButton } from "./consent-button";
 import { CustomMedications } from "./custom-medications";
 import { MessagesThread } from "@/components/messages/messages-thread";
-import { AppointmentsManager } from "@/components/appointments/appointments-manager";
 import {
   PageShell, Card, Badge, PatientStatusBadge, RxStatusBadge, Button, Icon,
 } from "@/components/ui";
@@ -179,10 +178,6 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             })}
           </div>
         )}
-      </section>
-
-      <section className="mt-6">
-        <AppointmentsManager patientId={patient.id} />
       </section>
 
       <section className="mt-6">
