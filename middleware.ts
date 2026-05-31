@@ -11,6 +11,7 @@ const PUBLIC_PATHS = [
   /^\/entrar$/,
   /^\/cadastro$/,
   /^\/api\/pharmacies\//,
+  /^\/api\/compare$/,
   /^\/demo\//,
   /^\/hub\//,
   /^\/go\//,

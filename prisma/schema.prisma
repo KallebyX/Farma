@@ -62,6 +62,29 @@ model Pharmacy {
   patients    Patient[]
   apiKeys     ApiKey[]
   webhooks    WebhookEndpoint[]
+  products    PharmacyProduct[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pharmacy catalog/stock — powers the patient "where to buy nearby" comparator.
+// Pharmacy-configured price/stock/coupon per item.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PharmacyProduct {
+  id         String   @id @default(uuid())
+  pharmacyId String
+  name       String
+  priceCents Int
+  stock      Int      @default(0)
+  couponPct  Int?     // optional discount %
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  pharmacy Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+
+  @@index([pharmacyId])
+  @@index([name])
 }
 
 model User {

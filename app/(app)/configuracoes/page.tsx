@@ -5,6 +5,7 @@ import { Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PageShell, PageHeader } from "@/components/ui";
 import { SettingsClient } from "./settings-client";
+import { ProductsClient } from "./products-client";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +25,9 @@ export default async function ConfiguracoesPage() {
   return (
     <PageShell narrow>
       <PageHeader eyebrow={pharmacy.fantasia ?? pharmacy.razaoSocial} title="Configurações" subtitle="Localização, rede e programa de indicação da sua farmácia." />
-      <div className="mt-8">
+      <div className="mt-8 space-y-6">
         <SettingsClient initial={pharmacy} canEdit={isAtLeast(ctx.role, Role.OWNER)} />
+        <ProductsClient canEdit={isAtLeast(ctx.role, Role.OWNER)} />
       </div>
     </PageShell>
   );
