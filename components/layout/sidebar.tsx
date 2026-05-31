@@ -25,7 +25,11 @@ const navItems: NavItem[] = [
   { href: "/patients", label: "Pacientes", icon: "Users", countKey: "activePatients" },
   { href: "/ram", label: "RAM", icon: "Alert", countKey: "ramPending", alertKey: "ramSevere" },
   { href: "/returns", label: "Retornos", icon: "Cart", countKey: "returnsAsked" },
+  { href: "/engajamento", label: "Engajamento", icon: "Heart" },
+  { href: "/afiliados", label: "Afiliados", icon: "TrendUp" },
+  { href: "/saude-conectada", label: "Saúde conectada", icon: "Activity" },
   { href: "/catalog", label: "Catálogo", icon: "Book" },
+  { href: "/integracoes", label: "Integrações", icon: "Link" },
   { href: "/settings/team", label: "Equipe", icon: "Settings" },
 ];
 
