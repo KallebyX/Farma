@@ -221,6 +221,9 @@ export function HubClient(props: {
         {/* Exams */}
         <ExamsHubSection token={props.token} onFlash={flash} />
 
+        {/* Messages with the pharmacy */}
+        <MessagesHubSection token={props.token} onFlash={flash} />
+
         {/* Rewards */}
         <Section title="🎁 Resgatar recompensas" subtitle={`Você tem ${props.account.points.toLocaleString("pt-BR")} pontos`}>
           <div className="space-y-2.5">
@@ -369,6 +372,70 @@ function ExamsHubSection({ token, onFlash }: { token: string; onFlash: (m: strin
           ))}
         </div>
       )}
+    </Section>
+  );
+}
+
+type HubMsg = { id: string; direction: "FROM_PATIENT" | "FROM_PHARMACY"; body: string; authorName: string | null; createdAt: string };
+
+function MessagesHubSection({ token, onFlash }: { token: string; onFlash: (m: string) => void }) {
+  const [msgs, setMsgs] = useState<HubMsg[]>([]);
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const authHeader = { Authorization: `Bearer ${token}` };
+
+  async function load() {
+    const r = await fetch("/api/patient/messages", { headers: authHeader });
+    const j = await r.json().catch(() => ({}));
+    if (j.ok) setMsgs(j.messages as HubMsg[]);
+  }
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function send() {
+    const text = body.trim();
+    if (!text) return;
+    setBusy(true);
+    try {
+      const r = await fetch("/api/patient/messages", {
+        method: "POST", headers: { ...authHeader, "Content-Type": "application/json" }, body: JSON.stringify({ body: text }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) { onFlash(j.error ?? "Não foi possível enviar"); return; }
+      setMsgs((m) => [...m, j.message]);
+      setBody("");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Section title="💬 Falar com a farmácia" subtitle="Tire dúvidas direto com sua farmácia">
+      {msgs.length > 0 && (
+        <div className="space-y-1.5 mb-2.5 max-h-64 overflow-y-auto">
+          {msgs.map((m) => {
+            const mine = m.direction === "FROM_PATIENT";
+            return (
+              <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-[13px] ${mine ? "bg-emerald-400 text-emerald-950 rounded-br-sm" : "bg-white/10 text-white rounded-bl-sm"}`}>
+                  <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  <p className={`mt-0.5 text-[9px] ${mine ? "text-emerald-900/60" : "text-emerald-100/40"}`}>
+                    {mine ? "Você" : m.authorName ?? "Farmácia"}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="flex items-end gap-2">
+        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={1} placeholder="Escreva sua mensagem…"
+          className="flex-1 resize-none rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm placeholder:text-emerald-100/40 outline-none" />
+        <button onClick={send} disabled={busy || body.trim().length === 0}
+          className="shrink-0 rounded-lg bg-emerald-400 text-emerald-950 font-bold text-sm px-4 py-2 disabled:opacity-50">→</button>
+      </div>
     </Section>
   );
 }
