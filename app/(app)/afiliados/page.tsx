@@ -30,10 +30,10 @@ export default async function AfiliadosPage() {
 
   return (
     <PageShell>
-      <PageHeader eyebrow="Crescimento" title="Afiliados & cashback" subtitle="Compras com link rastreável: o paciente ganha pontos, a farmácia ganha comissão." />
+      <PageHeader eyebrow="Crescimento" title="Laboratórios parceiros" subtitle="Laboratórios (Eurofarma, Cimed…) com link rastreável: o paciente ganha pontos e a farmácia, comissão." />
 
       <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat label="Parceiros ativos" value={String(partners.length)} icon={<Icon.Link size={18} />} />
+        <Stat label="Laboratórios ativos" value={String(partners.length)} icon={<Icon.Link size={18} />} />
         <Stat label="Cliques rastreados" value={clicks.toLocaleString("pt-BR")} icon={<Icon.Cart size={18} />} />
         <Stat label="Vendas confirmadas" value={String(convAgg._count)} icon={<Icon.Check size={18} />} />
         <Stat label="Comissão (confirmada)" value={brl(convAgg._sum.commissionCents ?? 0)} icon={<Icon.TrendUp size={18} />} highlight />
@@ -41,9 +41,9 @@ export default async function AfiliadosPage() {
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6">
-          <h2 className="text-[15px] font-semibold text-slate-800 flex items-center gap-2"><Icon.Link size={16} /> Parceiros</h2>
+          <h2 className="text-[15px] font-semibold text-slate-800 flex items-center gap-2"><Icon.Link size={16} /> Laboratórios</h2>
           <div className="mt-4 space-y-2.5">
-            {partners.length === 0 && <p className="text-[13px] text-slate-500">Nenhum parceiro cadastrado.</p>}
+            {partners.length === 0 && <p className="text-[13px] text-slate-500">Nenhum laboratório cadastrado.</p>}
             {partners.map((p) => (
               <div key={p.id} className="flex items-center justify-between rounded-lg border border-slate-100 px-3.5 py-2.5">
                 <div className="flex items-center gap-2.5 min-w-0">

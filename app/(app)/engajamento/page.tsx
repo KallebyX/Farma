@@ -29,7 +29,7 @@ export default async function EngajamentoPage() {
 
   return (
     <PageShell>
-      <PageHeader eyebrow="Engajamento & Fidelidade" title="Gamificação" subtitle="Missões, pontos, níveis e recompensas que transformam adesão em hábito." />
+      <PageHeader eyebrow="Configurações" title="Gamificação" subtitle="Configure as missões, recompensas e níveis do programa de fidelidade dos seus pacientes." />
 
       <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Stat label="Pacientes no programa" value={accounts} icon={<Icon.Users size={18} />} />
