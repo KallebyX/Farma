@@ -10,12 +10,42 @@ declare global {
 const log = process.env.NODE_ENV === "development" ? (["error", "warn"] as const) : (["error"] as const);
 
 /**
+ * Normalizes the connection string for serverless. Supabase's Vercel
+ * integration often sets `connection_limit=1`, which makes the ~15 parallel
+ * queries a single dashboard render fires serialize over one connection and
+ * blow the 10s pool timeout (P2024) — especially with the DB cross-region from
+ * the function. We raise the per-instance pool, extend the pool timeout, and
+ * enable pgbouncer mode when pointing at Supabase's transaction pooler (:6543).
+ * Overridable via PRISMA_CONNECTION_LIMIT.
+ */
+function tunePoolUrl(raw: string | undefined): string | undefined {
+  if (!raw) return raw;
+  try {
+    const u = new URL(raw);
+    const limit = u.searchParams.get("connection_limit");
+    if (!limit || limit === "1") u.searchParams.set("connection_limit", process.env.PRISMA_CONNECTION_LIMIT ?? "5");
+    if (!u.searchParams.has("pool_timeout")) u.searchParams.set("pool_timeout", "20");
+    if (u.port === "6543" && !u.searchParams.has("pgbouncer")) u.searchParams.set("pgbouncer", "true");
+    return u.toString();
+  } catch {
+    return raw; // not a parseable URL (e.g. unset) — leave as-is
+  }
+}
+
+function makeClient(url: string | undefined): PrismaClient {
+  const tuned = tunePoolUrl(url);
+  return tuned
+    ? new PrismaClient({ log: [...log], datasources: { db: { url: tuned } } })
+    : new PrismaClient({ log: [...log] });
+}
+
+/**
  * Base client — connects with the privileged role (DATABASE_URL). Used for
  * cross-tenant work that must not be constrained by row-level security:
  * authentication/session resolution, tenant onboarding, invitation acceptance,
  * WhatsApp inbound routing, and the cron jobs.
  */
-export const prisma = global.prisma ?? new PrismaClient({ log: [...log] });
+export const prisma = global.prisma ?? makeClient(process.env.DATABASE_URL);
 
 /**
  * Optional least-privilege client — connects with the `farma_app` role via
@@ -23,11 +53,7 @@ export const prisma = global.prisma ?? new PrismaClient({ log: [...log] });
  * the app keeps working on the privileged connection until RLS is activated.
  */
 const rlsBase = process.env.DATABASE_URL_APP
-  ? global.prismaRls ??
-    new PrismaClient({
-      log: [...log],
-      datasources: { db: { url: process.env.DATABASE_URL_APP } },
-    })
+  ? global.prismaRls ?? makeClient(process.env.DATABASE_URL_APP)
   : null;
 
 if (process.env.NODE_ENV !== "production") {
