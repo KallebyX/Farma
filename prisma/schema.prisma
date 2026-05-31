@@ -339,6 +339,10 @@ model Prescription {
   endDate         DateTime?           // computed if durationDays set
   quantityDispensed Int?              // number of units bought; for "remédio acabando" calc
   prescriber      String?             // doctor name; optional
+  batchLot        String?             // lote da caixa (rastreabilidade)
+  expiryDate      DateTime?           // validade da caixa → gera "aviso" de vencimento
+  prescriptionRef String?             // referência/QR da receita digital
+  photoKey        String?             // foto da receita no Storage
   status          PrescriptionStatus  @default(ACTIVE)
   pausedReason    String?
   createdById     String

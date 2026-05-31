@@ -38,6 +38,17 @@ export const createPrescriptionSchema = z
     instructions: z.string().trim().max(500).optional(),
     quantityDispensed: z.number().int().min(1).max(10000).optional(),
     prescriber: z.string().trim().max(120).optional(),
+    batchLot: z.string().trim().max(60).optional(),
+    prescriptionRef: z.string().trim().max(200).optional(),
+    photoKey: z.string().trim().max(300).optional(),
+    expiryDate: z
+      .string()
+      .optional()
+      .transform((v) => {
+        if (!v) return undefined;
+        const d = new Date(v);
+        return isNaN(d.getTime()) ? undefined : d;
+      }),
     startDate: z
       .string()
       .datetime()
