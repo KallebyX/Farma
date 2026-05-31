@@ -9,6 +9,8 @@ const PUBLIC_PATHS = [
   /^\/sign-in$/,
   /^\/sign-up$/,
   /^\/entrar$/,
+  /^\/cadastro$/,
+  /^\/api\/pharmacies\//,
   /^\/demo\//,
   /^\/hub\//,
   /^\/go\//,

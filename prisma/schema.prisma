@@ -44,6 +44,9 @@ model Pharmacy {
   cnpj        String   @unique
   razaoSocial String
   fantasia    String?
+  // Referral program config (pharmacy-tunable)
+  referralEnabled Boolean @default(true)
+  referralPoints  Int     @default(50) // points the referrer earns per friend who signs up
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -210,6 +213,7 @@ model Patient {
   status      PatientStatus @default(ACTIVE)
   consentGiven Boolean      @default(false)
   consentDate DateTime?
+  referralCode String?      @unique // shareable code for the referral program
   createdById String
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -233,10 +237,32 @@ model Patient {
   receipts             Receipt[]
   digitalPrescriptions DigitalPrescription[]
   dispensations        Dispensation[]
+  referralsMade        Referral[]            @relation("ReferralsMade")
+  referralReceived     Referral?             @relation("ReferralReceived")
 
   @@unique([pharmacyId, phone])
   @@index([pharmacyId, status])
   @@index([phone])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Referral program — patient invites a friend; on signup the referrer earns
+// pharmacy-configurable points.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Referral {
+  id            String   @id @default(uuid())
+  referrerId    String
+  referredId    String   @unique // a patient can be referred only once
+  pharmacyId    String
+  pointsAwarded Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  referrer Patient @relation("ReferralsMade", fields: [referrerId], references: [id], onDelete: Cascade)
+  referred Patient @relation("ReferralReceived", fields: [referredId], references: [id], onDelete: Cascade)
+
+  @@index([referrerId])
+  @@index([pharmacyId])
 }
 
 enum ConsentScope {
