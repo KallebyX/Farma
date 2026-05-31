@@ -21,7 +21,8 @@ export const navItems: NavItem[] = [
   { href: "/engajamento", label: "Gamificação", icon: "Heart" },
   { href: "/catalog", label: "Catálogo", icon: "Book" },
   { href: "/integracoes", label: "Integrações", icon: "Link" },
-  { href: "/settings/team", label: "Equipe", icon: "Settings" },
+  { href: "/configuracoes", label: "Configurações", icon: "Settings" },
+  { href: "/settings/team", label: "Equipe", icon: "Users" },
 ];
 
 export function isNavActive(pathname: string, href: string): boolean {

@@ -47,6 +47,13 @@ model Pharmacy {
   // Referral program config (pharmacy-tunable)
   referralEnabled Boolean @default(true)
   referralPoints  Int     @default(50) // points the referrer earns per friend who signs up
+  // Location & chain (powers the patient "nearby pharmacies" comparator)
+  chainName   String?  // rede/bandeira para agrupar filiais (ex.: "Drogasil")
+  addressLine String?
+  city        String?
+  state       String?  // UF
+  latitude    Float?
+  longitude   Float?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
