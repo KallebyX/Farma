@@ -778,3 +778,19 @@ model WearableSample {
   @@unique([patientId, metric, recordedAt, provider])
   @@index([patientId, metric, recordedAt])
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Patient self-login via WhatsApp OTP (one-time code → signed hub token)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PatientLoginCode {
+  id         String    @id @default(uuid())
+  phone      String    // E.164
+  codeHash   String    // sha-256 of the 6-digit code
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+}
