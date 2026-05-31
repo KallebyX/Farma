@@ -239,6 +239,9 @@ export function HubClient(props: {
         {/* Profile */}
         <ProfileHubSection token={props.token} onFlash={flash} />
 
+        {/* Referral */}
+        <ReferralHubSection token={props.token} onFlash={flash} />
+
         {/* Rewards */}
         <Section title="🎁 Resgatar recompensas" subtitle={`Você tem ${props.account.points.toLocaleString("pt-BR")} pontos`}>
           <div className="space-y-2.5">
@@ -716,6 +719,41 @@ function RxUploadHubSection({ token, onFlash }: { token: string; onFlash: (m: st
           ))}
         </div>
       )}
+    </Section>
+  );
+}
+
+function ReferralHubSection({ token, onFlash }: { token: string; onFlash: (m: string) => void }) {
+  const [data, setData] = useState<{ code: string; count: number; points: number } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/patient/referral", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json()).then((j) => { if (j.ok) setData({ code: j.code, count: j.count, points: j.points }); }).catch(() => {});
+  }, [token]);
+
+  if (!data) return null;
+  const link = `${typeof window !== "undefined" ? window.location.origin : ""}/cadastro?ref=${data.code}`;
+
+  function share() {
+    const text = `Cuide da sua saúde comigo no Meu Prontuário e ganhe recompensas: ${link}`;
+    const nav = navigator as Navigator & { share?: (d: { text: string }) => Promise<void> };
+    if (nav.share) { nav.share({ text }).catch(() => {}); return; }
+    navigator.clipboard?.writeText(link).then(() => { setCopied(true); onFlash("Link copiado!"); setTimeout(() => setCopied(false), 2000); });
+  }
+
+  return (
+    <Section title="🎁 Indique e ganhe" subtitle="Compartilhe seu link; quando um amigo se cadastra, você ganha pontos">
+      <div className="rounded-xl bg-white/5 border border-white/10 p-3.5">
+        <div className="flex items-center gap-2">
+          <code className="flex-1 truncate rounded-lg bg-white/10 px-3 py-2 text-[12px] font-mono text-emerald-100">{link}</code>
+          <button onClick={share} className="shrink-0 rounded-lg bg-emerald-400 text-emerald-950 font-bold text-sm px-3 py-2">{copied ? "✓" : "Compartilhar"}</button>
+        </div>
+        <div className="mt-2 flex gap-4 text-[12px] text-emerald-100/70">
+          <span>👥 {data.count} indicad{data.count === 1 ? "o" : "os"}</span>
+          <span>⭐ {data.points} pts ganhos</span>
+        </div>
+      </div>
     </Section>
   );
 }

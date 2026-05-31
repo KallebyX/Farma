@@ -80,7 +80,7 @@ export default function Landing() {
               </Link>
             </div>
             <p className="mt-4 text-[12.5px] text-slate-400">
-              É paciente? <Link href="/entrar" className="font-medium text-brand-600 underline-offset-2 hover:underline">Acesse sua saúde aqui →</Link>
+              É paciente? <Link href="/cadastro" className="font-medium text-brand-600 underline-offset-2 hover:underline">Crie sua conta</Link> ou <Link href="/entrar" className="font-medium text-brand-600 underline-offset-2 hover:underline">entre aqui →</Link>
             </p>
           </div>
 
