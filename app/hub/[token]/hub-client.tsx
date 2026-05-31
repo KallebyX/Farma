@@ -239,6 +239,9 @@ export function HubClient(props: {
         {/* Profile */}
         <ProfileHubSection token={props.token} onFlash={flash} />
 
+        {/* Price comparator */}
+        <CompareHubSection onFlash={flash} />
+
         {/* Referral */}
         <ReferralHubSection token={props.token} onFlash={flash} />
 
@@ -715,6 +718,66 @@ function RxUploadHubSection({ token, onFlash }: { token: string; onFlash: (m: st
                 <span className="text-[10px] text-emerald-100/60 shrink-0">{RX_STATUS[rx.status] ?? rx.status}</span>
               </div>
               <div className="text-[10px] text-emerald-100/40">{RX_SIG[rx.signature] ?? rx.signature}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+type CompareRow = { productId: string; name: string; finalCents: number; priceCents: number; couponPct: number | null; stock: number; pharmacy: { name: string; chainName: string | null; city: string | null; distanceKm: number | null } };
+
+function CompareHubSection({ onFlash }: { onFlash: (m: string) => void }) {
+  const [term, setTerm] = useState("");
+  const [rows, setRows] = useState<CompareRow[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(null);
+  const brl = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  function locate() {
+    if (!navigator.geolocation) { onFlash("Localização indisponível"); return; }
+    navigator.geolocation.getCurrentPosition(
+      (p) => { setLoc({ lat: p.coords.latitude, lng: p.coords.longitude }); onFlash("Localização ativada 📍"); },
+      () => onFlash("Não foi possível obter sua localização"),
+    );
+  }
+
+  async function search() {
+    if (term.trim().length < 2) return;
+    setBusy(true);
+    try {
+      const qs = new URLSearchParams({ term });
+      if (loc) { qs.set("lat", String(loc.lat)); qs.set("lng", String(loc.lng)); }
+      const r = await fetch(`/api/compare?${qs.toString()}`);
+      const j = await r.json().catch(() => ({}));
+      setRows(j.ok ? j.results : []);
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <Section title="💰 Onde comprar" subtitle="Compare preço e estoque nas farmácias perto de você">
+      <div className="rounded-xl bg-white/5 border border-white/10 p-3.5">
+        <div className="flex gap-2">
+          <input value={term} onChange={(e) => setTerm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()} placeholder="Buscar medicamento"
+            className="flex-1 rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm placeholder:text-emerald-100/40 outline-none" />
+          <button onClick={search} disabled={busy} className="shrink-0 rounded-lg bg-emerald-400 text-emerald-950 font-bold text-sm px-3 py-2 disabled:opacity-50">{busy ? "…" : "Buscar"}</button>
+        </div>
+        <button onClick={locate} className={`mt-2 text-[11px] font-semibold ${loc ? "text-emerald-300" : "text-emerald-100/60"}`}>📍 {loc ? "localização ativa" : "usar minha localização"}</button>
+      </div>
+      {rows && (
+        <div className="mt-2.5 space-y-1.5">
+          {rows.length === 0 && <p className="text-emerald-100/50 text-xs px-1">Nenhuma farmácia com esse item por perto.</p>}
+          {rows.map((r, i) => (
+            <div key={r.productId} className={`rounded-xl border p-3 ${i === 0 ? "bg-emerald-400/10 border-emerald-400/30" : "bg-white/5 border-white/10"}`}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-semibold text-sm truncate">{r.pharmacy.name}{r.pharmacy.chainName ? ` · ${r.pharmacy.chainName}` : ""}</div>
+                <div className="text-emerald-300 font-bold text-sm shrink-0">{brl(r.finalCents)}</div>
+              </div>
+              <div className="text-emerald-100/60 text-[11px] mt-0.5">
+                {r.name}{r.couponPct ? ` · cupom -${r.couponPct}%` : ""} · {r.stock} em estoque
+                {r.pharmacy.distanceKm != null ? ` · ${r.pharmacy.distanceKm} km` : (r.pharmacy.city ? ` · ${r.pharmacy.city}` : "")}
+              </div>
             </div>
           ))}
         </div>
