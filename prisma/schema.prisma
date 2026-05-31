@@ -231,6 +231,8 @@ model Patient {
   messages             PatientMessage[]
   appointments         Appointment[]
   receipts             Receipt[]
+  digitalPrescriptions DigitalPrescription[]
+  dispensations        Dispensation[]
 
   @@unique([pharmacyId, phone])
   @@index([pharmacyId, status])
@@ -912,5 +914,78 @@ model Receipt {
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
+  @@index([patientId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Digital prescriptions (receita digital) + dispensation with traceability.
+// ICP-Brasil chain validation and SNGPC/SNCR transmission are gated behind
+// credentials/certs (foundation here: signature detection + lead + dispensation).
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PrescriptionSignature {
+  UNSIGNED        // no digital signature detected
+  SIGNED_DETECTED // a PKCS#7/PAdES signature is present (chain not yet verified)
+  VERIFIED_ICP    // validated against the ICP-Brasil chain (requires creds)
+  INVALID
+}
+
+enum RxStatus {
+  SUBMITTED  // uploaded by patient
+  LEAD       // signature detected → offered to the pharmacy
+  DISPENSED
+  EXPIRED
+  REJECTED
+}
+
+enum SngpcStatus {
+  NA       // not a controlled drug
+  PENDING  // queued for SNGPC transmission
+  SENT
+  FAILED
+}
+
+model DigitalPrescription {
+  id         String                @id @default(uuid())
+  patientId  String
+  pharmacyId String
+  fileKey    String
+  fileName   String
+  mimeType   String
+  sizeBytes  Int                   @default(0)
+  signature  PrescriptionSignature @default(UNSIGNED)
+  signerName String?
+  crm        String?
+  issuedAt   DateTime?
+  status     RxStatus              @default(SUBMITTED)
+  notes      String?
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+
+  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  dispensations Dispensation[]
+
+  @@index([patientId, createdAt])
+  @@index([pharmacyId, status])
+}
+
+model Dispensation {
+  id             String      @id @default(uuid())
+  prescriptionId String?
+  patientId      String
+  pharmacyId     String
+  medication     String
+  batchLot       String?     // lote (rastreabilidade)
+  quantity       Int         @default(1)
+  nfeAccessKey   String?     // nota fiscal vinculada
+  crm            String?     // prescritor
+  dispensedBy    String?     // userId
+  sngpcStatus    SngpcStatus @default(NA)
+  createdAt      DateTime    @default(now())
+
+  prescription DigitalPrescription? @relation(fields: [prescriptionId], references: [id])
+  patient      Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([pharmacyId, createdAt])
   @@index([patientId, createdAt])
 }
