@@ -9,6 +9,8 @@ const PUBLIC_PATHS = [
   /^\/sign-in$/,
   /^\/sign-up$/,
   /^\/demo\//,
+  /^\/hub\//,
+  /^\/go\//,
   /^\/legal\//,
   /^\/accept-invite\//,
   /^\/api\/accept-invite\//,
@@ -17,6 +19,9 @@ const PUBLIC_PATHS = [
   /^\/api\/auth\//,
   /^\/api\/cron\//,
   /^\/api\/whatsapp\//,
+  /^\/api\/loyalty\//,
+  /^\/api\/affiliate\//,
+  /^\/api\/partner\//,
 ];
 
 export default auth((req) => {
