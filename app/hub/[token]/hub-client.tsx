@@ -22,6 +22,17 @@ const REASON_LABEL: Record<string, string> = {
   adherence: "Adesão ao tratamento",
 };
 
+type WProvider = { slug: string; name: string; logo: string; kind: string; available: boolean };
+type WConnection = { provider: string; status: string; lastSyncAt: string | null };
+type WLatest = { metric: string; value: number; unit: string; source: string | null };
+type Wearables = { providers: WProvider[]; connections: WConnection[]; latest: WLatest[] };
+
+const METRIC_LABEL: Record<string, string> = {
+  HEART_RATE: "❤️ FC", RESTING_HR: "❤️ FC repouso", STEPS: "👟 Passos", SLEEP_MINUTES: "😴 Sono (min)",
+  SPO2: "🫁 SpO₂", HRV: "📊 HRV", CALORIES: "🔥 Calorias", WEIGHT: "⚖️ Peso", GLUCOSE: "🩸 Glicemia",
+  BLOOD_PRESSURE_SYS: "🩸 PA sist.", BLOOD_PRESSURE_DIA: "🩸 PA diast.", TEMPERATURE: "🌡️ Temp.",
+};
+
 export function HubClient(props: {
   token: string;
   patientName: string;
@@ -30,11 +41,30 @@ export function HubClient(props: {
   rewards: Reward[];
   offers: Offer[];
   recent: Recent[];
+  wearables: Wearables;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [toast, setToast] = useState<string | null>(null);
   const [voucher, setVoucher] = useState<string | null>(null);
+  const [ingest, setIngest] = useState<{ provider: string; token: string; url: string } | null>(null);
+
+  function doConnect(slug: string) {
+    startTransition(async () => {
+      const res = await fetch("/api/wearables/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: props.token, provider: slug }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) { flash(j.error ?? "Não foi possível conectar"); return; }
+      if (j.mode === "oauth" && j.authUrl) {
+        window.location.href = j.authUrl;
+      } else if (j.mode === "ingest") {
+        setIngest({ provider: slug, token: j.ingestToken, url: j.ingestUrl });
+      }
+    });
+  }
 
   const tier = TIER_META[props.account.tier] ?? TIER_META.BRONZE;
   const progress = tier.next ? Math.min(100, (props.account.lifetime / tier.next) * 100) : 100;
@@ -152,6 +182,42 @@ export function HubClient(props: {
           </div>
         </Section>
 
+        {/* Wearables / Saúde Conectada */}
+        <Section title="⌚ Saúde Conectada" subtitle="Conecte seu relógio e acompanhe seus dados de saúde">
+          {props.wearables.latest.length > 0 && (
+            <div className="grid grid-cols-3 gap-2.5 mb-3">
+              {props.wearables.latest.slice(0, 6).map((m) => (
+                <div key={m.metric} className="rounded-xl bg-white/5 border border-white/10 p-3">
+                  <div className="text-[10px] text-emerald-100/60 font-semibold">{METRIC_LABEL[m.metric] ?? m.metric}</div>
+                  <div className="text-lg font-extrabold mt-0.5">{m.value}<span className="text-[10px] text-emerald-100/50 ml-1">{m.unit}</span></div>
+                  {m.source && <div className="text-[9px] text-emerald-100/40 truncate">{m.source}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-2.5">
+            {props.wearables.providers.map((p) => {
+              const conn = props.wearables.connections.find((c) => c.provider === p.slug);
+              const connected = conn?.status === "CONNECTED";
+              return (
+                <button key={p.slug} onClick={() => doConnect(p.slug)} disabled={pending || !p.available}
+                  className={`rounded-xl border p-3 text-left transition ${connected ? "bg-emerald-400/10 border-emerald-400/40" : "bg-white/5 border-white/10 hover:bg-white/10"} ${!p.available ? "opacity-40" : ""}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{p.logo}</span>
+                    <span className="text-[12px] font-semibold leading-tight">{p.name}</span>
+                  </div>
+                  <div className={`mt-1.5 text-[10px] font-bold ${connected ? "text-emerald-300" : "text-emerald-100/60"}`}>
+                    {connected ? "✓ conectado" : conn ? "pendente · toque p/ token" : p.available ? "+ conectar" : "indisponível"}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-emerald-100/40 mt-2">
+            Apple Watch e Galaxy Watch conectam via app/atalho enviando dados ao endpoint seguro. Garmin/Fitbit/Oura via login do provedor.
+          </p>
+        </Section>
+
         {/* Rewards */}
         <Section title="🎁 Resgatar recompensas" subtitle={`Você tem ${props.account.points.toLocaleString("pt-BR")} pontos`}>
           <div className="space-y-2.5">
@@ -211,6 +277,25 @@ export function HubClient(props: {
             <p className="text-sm text-slate-500 mt-1">Apresente o código na farmácia:</p>
             <div className="mt-3 font-mono font-bold text-lg tracking-wider bg-emerald-50 border border-emerald-200 rounded-lg py-3">{voucher}</div>
             <button onClick={() => setVoucher(null)} className="mt-4 w-full bg-emerald-600 text-white font-semibold rounded-lg py-2.5">Fechar</button>
+          </div>
+        </div>
+      )}
+
+      {/* Ingest token modal (Apple/Samsung/SDK) */}
+      {ingest && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-6" onClick={() => setIngest(null)}>
+          <div className="bg-white text-emerald-950 rounded-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center"><div className="text-4xl mb-2">⌚</div>
+              <h3 className="font-extrabold text-lg">Conectar dispositivo</h3>
+              <p className="text-sm text-slate-500 mt-1">Envie os dados de saúde para este endpoint seguro (app companheiro ou Atalho do iPhone):</p>
+            </div>
+            <div className="mt-3 text-left">
+              <div className="text-[11px] font-semibold text-slate-500">Endpoint</div>
+              <div className="font-mono text-[11px] break-all bg-slate-50 border border-slate-200 rounded-lg p-2">{ingest.url}</div>
+              <div className="text-[11px] font-semibold text-slate-500 mt-2">Token (Authorization: Bearer)</div>
+              <div className="font-mono text-[11px] break-all bg-emerald-50 border border-emerald-200 rounded-lg p-2">{ingest.token}</div>
+            </div>
+            <button onClick={() => setIngest(null)} className="mt-4 w-full bg-emerald-600 text-white font-semibold rounded-lg py-2.5">Entendi</button>
           </div>
         </div>
       )}

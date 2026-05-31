@@ -1,6 +1,8 @@
 import { verifyPatientToken } from "@/lib/patient-token";
 import { getHubData } from "@/lib/loyalty/service";
 import { getOrCreateLink } from "@/lib/affiliate/service";
+import { connectionsFor, latestMetrics } from "@/lib/wearables/service";
+import { listProviders, oauthConfigured } from "@/lib/wearables/providers";
 import { HubClient } from "./hub-client";
 
 export const dynamic = "force-dynamic";
@@ -47,10 +49,23 @@ export default async function HubPage({ params }: { params: Promise<{ token: str
     }),
   );
 
+  const [connections, latest] = await Promise.all([connectionsFor(patientId), latestMetrics(patientId)]);
+  const wearables = {
+    providers: listProviders().map((p) => ({
+      slug: p.slug, name: p.name, logo: p.logo, kind: p.kind,
+      available: p.kind === "ingest" || oauthConfigured(p),
+    })),
+    connections: connections.map((c) => ({
+      provider: c.provider, status: c.status, lastSyncAt: c.lastSyncAt ? c.lastSyncAt.toISOString() : null,
+    })),
+    latest: Object.entries(latest).map(([metric, v]) => ({ metric, value: v.value, unit: v.unit, source: v.source })),
+  };
+
   return (
     <HubClient
       token={token}
       patientName={data.patient.name}
+      wearables={wearables}
       account={{
         points: data.account.points,
         lifetime: data.account.lifetime,

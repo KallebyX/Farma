@@ -22,6 +22,7 @@ const PUBLIC_PATHS = [
   /^\/api\/loyalty\//,
   /^\/api\/affiliate\//,
   /^\/api\/partner\//,
+  /^\/api\/wearables\//,
 ];
 
 export default auth((req) => {
