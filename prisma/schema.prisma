@@ -230,6 +230,7 @@ model Patient {
   exams                Exam[]
   messages             PatientMessage[]
   appointments         Appointment[]
+  receipts             Receipt[]
 
   @@unique([pharmacyId, phone])
   @@index([pharmacyId, status])
@@ -893,4 +894,23 @@ model Appointment {
 
   @@index([patientId, scheduledAt])
   @@index([pharmacyId, scheduledAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fiscal receipts (NF-e/NFC-e) scanned by the patient → loyalty points
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Receipt {
+  id            String   @id @default(uuid())
+  patientId     String
+  pharmacyId    String
+  accessKey     String   @unique   // 44-digit NF-e/NFC-e chave de acesso
+  rawUrl        String?
+  amountCents   Int?
+  pointsAwarded Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, createdAt])
 }

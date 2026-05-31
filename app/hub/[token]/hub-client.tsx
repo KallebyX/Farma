@@ -224,8 +224,17 @@ export function HubClient(props: {
         {/* Appointments */}
         <MyAppointmentsHubSection token={props.token} />
 
+        {/* Nota premiada (NF-e QR → pontos) */}
+        <ReceiptScanHubSection token={props.token} onFlash={flash} />
+
+        {/* Report an adverse reaction */}
+        <RamReportHubSection token={props.token} onFlash={flash} />
+
         {/* Messages with the pharmacy */}
         <MessagesHubSection token={props.token} onFlash={flash} />
+
+        {/* Profile */}
+        <ProfileHubSection token={props.token} onFlash={flash} />
 
         {/* Rewards */}
         <Section title="🎁 Resgatar recompensas" subtitle={`Você tem ${props.account.points.toLocaleString("pt-BR")} pontos`}>
@@ -474,6 +483,175 @@ function MyAppointmentsHubSection({ token }: { token: string }) {
           );
         })}
       </div>
+    </Section>
+  );
+}
+
+type BarcodeDetectorLike = { detect: (s: unknown) => Promise<{ rawValue: string }[]> };
+
+function ReceiptScanHubSection({ token, onFlash }: { token: string; onFlash: (m: string) => void }) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  function stopScan() {
+    setScanning(false);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }
+  useEffect(() => () => stopScan(), []);
+
+  async function submit(raw: string) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await fetch("/api/patient/receipts", {
+        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ code: raw }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) { onFlash(j.error ?? "Não foi possível registrar"); return; }
+      onFlash(`Nota registrada! +${j.points} pontos 🎉`);
+      setCode("");
+      setTimeout(() => window.location.reload(), 1200);
+    } finally { setBusy(false); }
+  }
+
+  async function startScan() {
+    const Ctor = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector;
+    if (!Ctor || !navigator.mediaDevices?.getUserMedia) { onFlash("Câmera indisponível — cole a chave abaixo"); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      streamRef.current = stream;
+      setScanning(true);
+      const detector = new Ctor({ formats: ["qr_code"] });
+      const video = videoRef.current!;
+      video.srcObject = stream;
+      await video.play();
+      const tick = async () => {
+        if (!streamRef.current || !videoRef.current) return;
+        try {
+          const codes = await detector.detect(videoRef.current);
+          if (codes[0]?.rawValue) { const v = codes[0].rawValue; stopScan(); submit(v); return; }
+        } catch { /* keep trying */ }
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    } catch { onFlash("Não foi possível abrir a câmera"); stopScan(); }
+  }
+
+  return (
+    <Section title="🧾 Nota premiada" subtitle="Escaneie o QR da nota fiscal e ganhe pontos">
+      {scanning ? (
+        <div className="rounded-xl overflow-hidden border border-emerald-400/40">
+          <video ref={videoRef} className="w-full bg-black" muted playsInline />
+          <button onClick={stopScan} className="w-full bg-white/10 text-white text-sm py-2">Cancelar</button>
+        </div>
+      ) : (
+        <div className="rounded-xl bg-white/5 border border-white/10 p-3.5 space-y-2">
+          <button onClick={startScan} className="w-full rounded-lg bg-emerald-400 text-emerald-950 font-bold text-sm py-2.5">📷 Escanear QR da nota</button>
+          <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="ou cole a chave de 44 dígitos" className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm placeholder:text-emerald-100/40 outline-none" />
+          <button onClick={() => submit(code)} disabled={busy || code.replace(/\D/g, "").length < 44} className="w-full rounded-lg bg-white/10 text-white font-semibold text-sm py-2 disabled:opacity-40">{busy ? "Registrando…" : "Registrar nota"}</button>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function RamReportHubSection({ token, onFlash }: { token: string; onFlash: (m: string) => void }) {
+  const [text, setText] = useState("");
+  const [sev, setSev] = useState("MODERATE");
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  async function send() {
+    if (text.trim().length < 3) { onFlash("Descreva o que você sentiu"); return; }
+    setBusy(true);
+    try {
+      const r = await fetch("/api/patient/ram", {
+        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ freeText: text, symptoms: text.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 10), severity: sev }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) { onFlash(j.error ?? "Erro ao enviar"); return; }
+      onFlash("Relato enviado à sua farmácia. Obrigado! 🙏");
+      setText(""); setOpen(false);
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <Section title="⚠️ Senti uma reação" subtitle="Relate uma reação adversa ao medicamento">
+      {!open ? (
+        <button onClick={() => setOpen(true)} className="w-full rounded-xl bg-white/5 border border-white/10 py-3 text-sm font-semibold hover:bg-white/10">Relatar reação adversa</button>
+      ) : (
+        <div className="rounded-xl bg-white/5 border border-white/10 p-3.5 space-y-2">
+          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} placeholder="O que você sentiu? (ex.: náusea, tontura, manchas)" className="w-full resize-none rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm placeholder:text-emerald-100/40 outline-none" />
+          <select value={sev} onChange={(e) => setSev(e.target.value)} className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm text-white">
+            <option className="text-slate-900" value="MILD">Leve</option>
+            <option className="text-slate-900" value="MODERATE">Moderada</option>
+            <option className="text-slate-900" value="SEVERE">Grave</option>
+          </select>
+          <div className="flex gap-2">
+            <button onClick={send} disabled={busy} className="flex-1 rounded-lg bg-emerald-400 text-emerald-950 font-bold text-sm py-2 disabled:opacity-50">{busy ? "Enviando…" : "Enviar relato"}</button>
+            <button onClick={() => setOpen(false)} className="rounded-lg bg-white/10 text-white text-sm px-4">Cancelar</button>
+          </div>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function ProfileHubSection({ token, onFlash }: { token: string; onFlash: (m: string) => void }) {
+  const [profile, setProfile] = useState<{ name: string; phone: string; allergies: string[] } | null>(null);
+  const [name, setName] = useState("");
+  const [allergies, setAllergies] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/patient/profile", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json()).then((j) => {
+        if (j.ok && j.profile) { setProfile(j.profile); setName(j.profile.name ?? ""); setAllergies((j.profile.allergies ?? []).join(", ")); }
+      }).catch(() => {});
+  }, [token]);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/patient/profile", {
+        method: "PATCH", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ name, allergies: allergies.split(",").map((s) => s.trim()).filter(Boolean) }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) { onFlash(j.error ?? "Erro"); return; }
+      onFlash("Perfil atualizado ✓");
+      setProfile((p) => p ? { ...p, name, allergies: allergies.split(",").map((s) => s.trim()).filter(Boolean) } : p);
+      setOpen(false);
+    } finally { setBusy(false); }
+  }
+
+  if (!profile) return null;
+  return (
+    <Section title="👤 Meu perfil" subtitle="Mantenha seus dados atualizados">
+      {!open ? (
+        <div className="rounded-xl bg-white/5 border border-white/10 p-3.5">
+          <div className="font-semibold text-sm">{profile.name}</div>
+          <div className="text-emerald-100/60 text-xs mt-0.5">{profile.phone}{profile.allergies.length ? ` · alergias: ${profile.allergies.join(", ")}` : ""}</div>
+          <button onClick={() => setOpen(true)} className="mt-2 text-emerald-300 text-xs font-semibold">Editar →</button>
+        </div>
+      ) : (
+        <div className="rounded-xl bg-white/5 border border-white/10 p-3.5 space-y-2">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome" className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm outline-none" />
+          <input value={allergies} onChange={(e) => setAllergies(e.target.value)} placeholder="Alergias (separadas por vírgula)" className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm placeholder:text-emerald-100/40 outline-none" />
+          <div className="flex gap-2">
+            <button onClick={save} disabled={busy} className="flex-1 rounded-lg bg-emerald-400 text-emerald-950 font-bold text-sm py-2 disabled:opacity-50">{busy ? "Salvando…" : "Salvar"}</button>
+            <button onClick={() => setOpen(false)} className="rounded-lg bg-white/10 text-white text-sm px-4">Cancelar</button>
+          </div>
+        </div>
+      )}
     </Section>
   );
 }
