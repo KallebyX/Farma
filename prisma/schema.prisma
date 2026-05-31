@@ -227,6 +227,7 @@ model Patient {
   affiliateConversions AffiliateConversion[]
   wearableConnections  WearableConnection[]
   wearableSamples      WearableSample[]
+  exams                Exam[]
 
   @@unique([pharmacyId, phone])
   @@index([pharmacyId, status])
@@ -793,4 +794,35 @@ model PatientLoginCode {
   createdAt  DateTime  @default(now())
 
   @@index([phone, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exams — patient documents (lab results, imaging) stored in Supabase Storage
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ExamStatus {
+  PENDING   // upload started, file not confirmed yet
+  READY
+  ARCHIVED
+}
+
+model Exam {
+  id         String     @id @default(uuid())
+  patientId  String
+  pharmacyId String     // denormalized for tenant scoping/indexing
+  title      String
+  category   String?    // "Laboratorial" | "Imagem" | "Receita" | ...
+  fileKey    String     // storage object path within the bucket
+  fileName   String
+  mimeType   String
+  sizeBytes  Int        @default(0)
+  status     ExamStatus @default(READY)
+  uploadedBy String?    // userId (staff) or "patient"
+  notes      String?
+  createdAt  DateTime   @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, createdAt])
+  @@index([pharmacyId, createdAt])
 }

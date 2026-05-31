@@ -17,6 +17,7 @@ const PUBLIC_PATHS = [
   /^\/api\/accept-invite\//,
   /^\/api\/sign-up$/,
   /^\/api\/patient-auth\//,
+  /^\/api\/patient\//,
   /^\/api\/cmed-fetch$/,
   /^\/api\/auth\//,
   /^\/api\/cron\//,
