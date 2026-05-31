@@ -27,7 +27,6 @@ export function AddPrescription({ patientId }: { patientId: string }) {
   const [fixedTimes, setFixedTimes] = useState<string[]>(["08:00"]);
   const [doseAmount, setDoseAmount] = useState("1 comprimido");
   const [durationDays, setDurationDays] = useState<string>("");
-  const [instructions, setInstructions] = useState("");
   const [quantity, setQuantity] = useState<string>("");
 
   useEffect(() => {
@@ -54,7 +53,6 @@ export function AddPrescription({ patientId }: { patientId: string }) {
     setFixedTimes(["08:00"]);
     setDoseAmount("1 comprimido");
     setDurationDays("");
-    setInstructions("");
     setQuantity("");
     setError(null);
   }
@@ -74,7 +72,6 @@ export function AddPrescription({ patientId }: { patientId: string }) {
       patientId,
       medicationId: selected.id,
       doseAmount,
-      instructions: instructions || undefined,
       quantityDispensed: quantity ? Number(quantity) : undefined,
       durationDays: durationDays ? Number(durationDays) : undefined,
     };
@@ -263,17 +260,6 @@ export function AddPrescription({ patientId }: { patientId: string }) {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700">
-                  Instruções (opcional)
-                </label>
-                <input
-                  value={instructions}
-                  onChange={(e) => setInstructions(e.target.value)}
-                  placeholder="ex: em jejum, antes do café"
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
             </div>
 
             <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-3">
