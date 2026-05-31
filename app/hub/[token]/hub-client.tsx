@@ -221,6 +221,9 @@ export function HubClient(props: {
         {/* Exams */}
         <ExamsHubSection token={props.token} onFlash={flash} />
 
+        {/* Appointments */}
+        <MyAppointmentsHubSection token={props.token} />
+
         {/* Messages with the pharmacy */}
         <MessagesHubSection token={props.token} onFlash={flash} />
 
@@ -435,6 +438,41 @@ function MessagesHubSection({ token, onFlash }: { token: string; onFlash: (m: st
           className="flex-1 resize-none rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm placeholder:text-emerald-100/40 outline-none" />
         <button onClick={send} disabled={busy || body.trim().length === 0}
           className="shrink-0 rounded-lg bg-emerald-400 text-emerald-950 font-bold text-sm px-4 py-2 disabled:opacity-50">→</button>
+      </div>
+    </Section>
+  );
+}
+
+type HubAppt = { id: string; title: string; kind: string; scheduledAt: string; status: string; professional: string | null; location: string | null };
+const APPT_KIND: Record<string, string> = { CONSULTATION: "Consulta", FOLLOWUP: "Retorno", EXAM: "Exame", VACCINE: "Vacina", OTHER: "Atendimento" };
+const APPT_STATUS: Record<string, string> = { SCHEDULED: "agendada", COMPLETED: "concluída", CANCELLED: "cancelada", NO_SHOW: "faltou" };
+
+function MyAppointmentsHubSection({ token }: { token: string }) {
+  const [items, setItems] = useState<HubAppt[]>([]);
+  useEffect(() => {
+    fetch("/api/patient/appointments", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json()).then((j) => { if (j.ok) setItems(j.appointments as HubAppt[]); }).catch(() => {});
+  }, [token]);
+
+  if (items.length === 0) return null;
+  return (
+    <Section title="📅 Minhas consultas" subtitle="Agendamentos com sua farmácia">
+      <div className="space-y-2">
+        {items.map((a) => {
+          const upcoming = a.status === "SCHEDULED" && new Date(a.scheduledAt).getTime() > Date.now();
+          return (
+            <div key={a.id} className={`rounded-xl border p-3.5 ${upcoming ? "bg-emerald-400/10 border-emerald-400/30" : "bg-white/5 border-white/10"}`}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-semibold text-sm">{a.title}</div>
+                <span className="text-[10px] text-emerald-100/60">{APPT_STATUS[a.status] ?? a.status}</span>
+              </div>
+              <div className="text-emerald-100/70 text-xs mt-0.5">
+                {new Date(a.scheduledAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · {APPT_KIND[a.kind] ?? a.kind}
+                {a.professional ? ` · ${a.professional}` : ""}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </Section>
   );

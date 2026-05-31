@@ -14,6 +14,7 @@ export type NavItem = {
 export const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: "Home" },
   { href: "/patients", label: "Pacientes", icon: "Users", countKey: "activePatients" },
+  { href: "/agenda", label: "Agenda", icon: "Calendar" },
   { href: "/ram", label: "RAM", icon: "Alert", countKey: "ramPending", alertKey: "ramSevere" },
   { href: "/returns", label: "Retornos", icon: "Cart", countKey: "returnsAsked" },
   { href: "/engajamento", label: "Engajamento", icon: "Heart" },

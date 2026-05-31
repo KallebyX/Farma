@@ -229,6 +229,7 @@ model Patient {
   wearableSamples      WearableSample[]
   exams                Exam[]
   messages             PatientMessage[]
+  appointments         Appointment[]
 
   @@unique([pharmacyId, phone])
   @@index([pharmacyId, status])
@@ -851,4 +852,45 @@ model PatientMessage {
 
   @@index([patientId, createdAt])
   @@index([pharmacyId, readAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Appointments / consultas (pharmaceutical care, vaccines, follow-ups)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum AppointmentKind {
+  CONSULTATION
+  FOLLOWUP
+  EXAM
+  VACCINE
+  OTHER
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Appointment {
+  id           String            @id @default(uuid())
+  patientId    String
+  pharmacyId   String
+  title        String
+  kind         AppointmentKind   @default(CONSULTATION)
+  scheduledAt  DateTime
+  durationMin  Int               @default(30)
+  location     String?
+  professional String?
+  status       AppointmentStatus @default(SCHEDULED)
+  notes        String?
+  createdBy    String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, scheduledAt])
+  @@index([pharmacyId, scheduledAt])
 }
