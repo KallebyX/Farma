@@ -50,6 +50,8 @@ model Pharmacy {
   members     Membership[]
   invitations Invitation[]
   patients    Patient[]
+  apiKeys     ApiKey[]
+  webhooks    WebhookEndpoint[]
 }
 
 model User {
@@ -217,6 +219,12 @@ model Patient {
   prescriptions Prescription[]
   consents      PatientConsent[]
   ramReports    RAMReport[]
+  loyalty              LoyaltyAccount?
+  pointsEntries        PointsEntry[]
+  missionCompletions   MissionCompletion[]
+  redemptions          Redemption[]
+  affiliateClicks      AffiliateClick[]
+  affiliateConversions AffiliateConversion[]
 
   @@unique([pharmacyId, phone])
   @@index([pharmacyId, status])
@@ -430,4 +438,263 @@ model ReturnExpectation {
 
   @@index([status, expectedAt])
   @@index([prescriptionId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Loyalty / Gamification (patient-facing engagement hub)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum LoyaltyTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+model LoyaltyAccount {
+  id          String      @id @default(uuid())
+  patientId   String      @unique
+  points      Int         @default(0)      // current redeemable balance
+  lifetime    Int         @default(0)      // total ever earned (drives tier)
+  tier        LoyaltyTier @default(BRONZE)
+  streakDays  Int         @default(0)
+  lastActueAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+// Append-only ledger of every point movement (audit + idempotency).
+model PointsEntry {
+  id         String   @id @default(uuid())
+  patientId  String
+  delta      Int
+  reason     String                 // "mission", "affiliate_conversion", "redemption", "adherence"
+  refType    String?
+  refId      String?
+  createdAt  DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@unique([reason, refType, refId])   // idempotent awarding
+  @@index([patientId, createdAt])
+}
+
+enum MissionKind {
+  ADHERENCE
+  PURCHASE
+  PROFILE
+  REFERRAL
+  CHECKIN
+  CUSTOM
+}
+
+model Mission {
+  id          String      @id @default(uuid())
+  code        String      @unique
+  title       String
+  description String
+  points      Int
+  kind        MissionKind @default(CUSTOM)
+  icon        String?
+  active      Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+
+  completions MissionCompletion[]
+}
+
+model MissionCompletion {
+  id          String   @id @default(uuid())
+  patientId   String
+  missionId   String
+  completedAt DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, missionId])
+}
+
+enum RewardKind {
+  DISCOUNT
+  CASHBACK
+  PRODUCT
+  DONATION
+}
+
+model Reward {
+  id          String     @id @default(uuid())
+  code        String     @unique
+  title       String
+  description String
+  costPoints  Int
+  kind        RewardKind @default(DISCOUNT)
+  stock       Int?       // null = unlimited
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+
+  redemptions Redemption[]
+}
+
+enum RedemptionStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
+
+model Redemption {
+  id         String           @id @default(uuid())
+  patientId  String
+  rewardId   String
+  costPoints Int
+  status     RedemptionStatus @default(PENDING)
+  voucher    String?          // generated code
+  createdAt  DateTime         @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  reward  Reward  @relation(fields: [rewardId], references: [id])
+
+  @@index([patientId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Affiliate program (patient buys via partner pharmacy links; commission + points)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AffiliatePartner {
+  id            String   @id @default(uuid())
+  slug          String   @unique          // "drogasil"
+  name          String
+  baseUrl       String                    // https://www.drogasil.com.br
+  utmSource     String   @default("meuprontuario")
+  utmMedium     String   @default("affiliate")
+  commissionPct Float    @default(0)       // % of order value
+  pointsPerReal Float    @default(1)       // loyalty points per R$ converted
+  logo          String?
+  color         String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  links       AffiliateLink[]
+  conversions AffiliateConversion[]
+}
+
+model AffiliateLink {
+  id         String   @id @default(uuid())
+  code       String   @unique               // short code used in /go/[code]
+  partnerId  String
+  patientId  String?                         // attributed patient (nullable for generic)
+  targetPath String   @default("/")          // path appended to partner baseUrl
+  campaign   String?
+  createdAt  DateTime @default(now())
+
+  partner AffiliatePartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  clicks  AffiliateClick[]
+
+  @@index([partnerId])
+  @@index([patientId])
+}
+
+model AffiliateClick {
+  id        String   @id @default(uuid())
+  linkId    String
+  patientId String?
+  clickRef  String   @unique                 // our fbclid-style tracking id
+  userAgent String?
+  referer   String?
+  createdAt DateTime @default(now())
+
+  link        AffiliateLink         @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  patient     Patient?              @relation(fields: [patientId], references: [id])
+  conversions AffiliateConversion[]
+
+  @@index([linkId, createdAt])
+}
+
+enum ConversionStatus {
+  PENDING
+  CONFIRMED
+  REVERSED
+}
+
+model AffiliateConversion {
+  id              String           @id @default(uuid())
+  partnerId       String
+  patientId       String?
+  clickId         String?
+  externalOrderId String                       // partner's order id (idempotency)
+  amountCents     Int              @default(0)
+  commissionCents Int              @default(0)
+  pointsAwarded   Int              @default(0)
+  status          ConversionStatus @default(PENDING)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  partner AffiliatePartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  patient Patient?         @relation(fields: [patientId], references: [id])
+  click   AffiliateClick?  @relation(fields: [clickId], references: [id])
+
+  @@unique([partnerId, externalOrderId])
+  @@index([patientId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Partner API: per-pharmacy API keys + outbound webhook subscriptions
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  pharmacyId String
+  name       String
+  prefix     String    @unique               // public id shown in UI (e.g. "pk_live_ab12")
+  hash       String                           // sha-256 of the full secret
+  scopes     String[]  @default([])
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  pharmacy Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+
+  @@index([pharmacyId])
+}
+
+model WebhookEndpoint {
+  id         String   @id @default(uuid())
+  pharmacyId String
+  url        String
+  secret     String                          // HMAC signing secret
+  events     String[] @default([])           // ["ram.created","return.due","order.created"]
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  pharmacy   Pharmacy          @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([pharmacyId])
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model WebhookDelivery {
+  id          String                @id @default(uuid())
+  endpointId  String
+  event       String
+  payload     Json
+  status      WebhookDeliveryStatus @default(PENDING)
+  attempts    Int                   @default(0)
+  responseCode Int?
+  lastError   String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([endpointId, createdAt])
 }
