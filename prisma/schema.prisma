@@ -228,6 +228,7 @@ model Patient {
   wearableConnections  WearableConnection[]
   wearableSamples      WearableSample[]
   exams                Exam[]
+  messages             PatientMessage[]
 
   @@unique([pharmacyId, phone])
   @@index([pharmacyId, status])
@@ -825,4 +826,29 @@ model Exam {
 
   @@index([patientId, createdAt])
   @@index([pharmacyId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Patient ↔ pharmacy messaging (in-app thread; complements WhatsApp)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum MessageDirection {
+  FROM_PATIENT
+  FROM_PHARMACY
+}
+
+model PatientMessage {
+  id         String           @id @default(uuid())
+  patientId  String
+  pharmacyId String
+  direction  MessageDirection
+  body       String
+  authorName String?          // staff display name when FROM_PHARMACY
+  readAt     DateTime?        // read by the *other* side
+  createdAt  DateTime         @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, createdAt])
+  @@index([pharmacyId, readAt])
 }

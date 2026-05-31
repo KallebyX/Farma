@@ -7,6 +7,7 @@ import { AddPrescription } from "./add-prescription";
 import { ConsentButton } from "./consent-button";
 import { CustomMedications } from "./custom-medications";
 import { ExamsManager } from "@/components/exams/exams-manager";
+import { MessagesThread } from "@/components/messages/messages-thread";
 import {
   PageShell, Card, Badge, PatientStatusBadge, RxStatusBadge, Button, Icon,
 } from "@/components/ui";
@@ -180,8 +181,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         )}
       </section>
 
-      <section className="mt-6">
+      <section className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ExamsManager apiBase="/api/exams" patientId={patient.id} />
+        <MessagesThread apiBase={`/api/patients/${patient.id}/messages`} />
       </section>
     </PageShell>
   );
