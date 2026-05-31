@@ -43,3 +43,4 @@ function buildLimiter(): Limiter {
 }
 
 export const inviteRateLimit = buildLimiter();
+export const patientOtpRateLimit = buildLimiter();

@@ -17,6 +17,10 @@
     {
       "path": "/api/cron/deliver-webhooks",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/sync-wearables",
+      "schedule": "0 */2 * * *"
     }
   ]
 }
