@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui";
 import { cx } from "@/components/ui/utils";
+import { MobileNav } from "./mobile-nav";
+import type { NavCounts } from "./nav-items";
 
 interface TopbarProps {
-  counts: { ramPending: number; ramSevere: number; returnsAsked: number; activePatients: number };
+  counts: NavCounts;
 }
 
 const breadcrumbMap: Record<string, string> = {
@@ -14,7 +16,11 @@ const breadcrumbMap: Record<string, string> = {
   "/patients": "Pacientes",
   "/ram": "Inbox de RAM",
   "/returns": "Retornos",
+  "/engajamento": "Engajamento",
+  "/afiliados": "Afiliados",
+  "/saude-conectada": "Saúde conectada",
   "/catalog": "Catálogo",
+  "/integracoes": "Integrações",
   "/settings/team": "Equipe",
 };
 
@@ -32,7 +38,8 @@ export function Topbar({ counts }: TopbarProps) {
 
   return (
     <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-30">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        <MobileNav counts={counts} />
         <p className="text-[13px] font-semibold text-slate-800">{crumb}</p>
       </div>
       <div className="flex items-center gap-2">

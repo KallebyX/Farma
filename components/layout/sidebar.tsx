@@ -4,39 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FarmaLogo, Icon, Avatar } from "@/components/ui";
 import { cx, roleLabel } from "@/components/ui/utils";
+import { navItems, isNavActive, type NavCounts } from "./nav-items";
 
 interface SidebarProps {
   pharmacy: { fantasia: string | null; razaoSocial: string; cnpj: string | null } | null;
   user: { name: string | null; email: string; role: string } | null;
-  counts: { ramPending: number; ramSevere: number; returnsAsked: number; activePatients: number };
+  counts: NavCounts;
   signOutSlot?: React.ReactNode;
 }
 
-type NavItem = {
-  href: string;
-  label: string;
-  icon: keyof typeof Icon;
-  countKey?: keyof SidebarProps["counts"];
-  alertKey?: keyof SidebarProps["counts"];
-};
-
-const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: "Home" },
-  { href: "/patients", label: "Pacientes", icon: "Users", countKey: "activePatients" },
-  { href: "/ram", label: "RAM", icon: "Alert", countKey: "ramPending", alertKey: "ramSevere" },
-  { href: "/returns", label: "Retornos", icon: "Cart", countKey: "returnsAsked" },
-  { href: "/engajamento", label: "Engajamento", icon: "Heart" },
-  { href: "/afiliados", label: "Afiliados", icon: "TrendUp" },
-  { href: "/saude-conectada", label: "Saúde conectada", icon: "Activity" },
-  { href: "/catalog", label: "Catálogo", icon: "Book" },
-  { href: "/integracoes", label: "Integrações", icon: "Link" },
-  { href: "/settings/team", label: "Equipe", icon: "Settings" },
-];
-
 export function Sidebar({ pharmacy, user, counts, signOutSlot }: SidebarProps) {
   const pathname = usePathname();
-  const isActive = (href: string) =>
-    href === "/dashboard" ? pathname === "/dashboard" : pathname === href || pathname.startsWith(href + "/");
+  const isActive = (href: string) => isNavActive(pathname, href);
 
   return (
     <aside className="hidden lg:flex flex-col w-[232px] bg-white border-r border-slate-200 shrink-0 sticky top-0 h-screen">
