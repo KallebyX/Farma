@@ -554,8 +554,260 @@ function PainelFarmacia() {
   );
 }
 
+/* ─── DADOS: Consultas, Exames, Saúde Conectada ─────────────────── */
+const CONSULTAS = [
+  { id: 1, medico: "Dr. Carlos Mendes", iniciais: "CM", esp: "Clínico Geral", data: "12/05/2026", dia: "Terça", hora: "14:30", tipo: "presencial", local: "Clínica Meu Prontuário · Itaim", motivo: "Retorno — acompanhamento de hipertensão", dias: 4, cor: "#0d9488", icone: "🩺" },
+  { id: 2, medico: "Dra. Ana Lima", iniciais: "AL", esp: "Pneumologia", data: "20/05/2026", dia: "Quarta", hora: "10:00", tipo: "telemedicina", local: "Telemedicina Meu Prontuário", motivo: "Acompanhamento do Raio-X de tórax", dias: 12, cor: "#3b82f6", icone: "💻" },
+  { id: 3, medico: "Dr. Roberto Alves", iniciais: "RA", esp: "Cardiologia", data: "08/06/2026", dia: "Segunda", hora: "16:00", tipo: "presencial", local: "CardioCenter · Brooklin", motivo: "Avaliação cardiológica anual", dias: 31, cor: "#dc2626", icone: "❤️" },
+];
+const CONSULTAS_PASSADAS = [
+  { id: 100, medico: "Dr. Carlos Mendes", esp: "Clínico Geral", data: "12/04/2025", diag: "Hipertensão controlada", cid: "I10", nota: 5, cor: "#0d9488" },
+  { id: 101, medico: "Dra. Ana Lima", esp: "Pneumologia", data: "02/03/2025", diag: "Espessamento pleural leve", cid: "J94.0", nota: 5, cor: "#3b82f6" },
+];
+const ESPECIALIDADES = [
+  { nome: "Clínico Geral", icone: "🩺" }, { nome: "Cardiologia", icone: "❤️" }, { nome: "Dermatologia", icone: "🧴" },
+  { nome: "Pneumologia", icone: "🫁" }, { nome: "Ortopedia", icone: "🦴" }, { nome: "Pediatria", icone: "👶" },
+];
+const EXAMES = [
+  { id: 1, tipo: "Hemograma Completo", data: "12/04/2025", clinica: "Lab São Lucas", cat: "Laboratorial", status: "Normal", icone: "🩸", nota: "Todos os valores dentro da normalidade. Hemoglobina 13.8 g/dL, leucócitos 6.200." },
+  { id: 2, tipo: "Raio-X de Tórax", data: "02/03/2025", clinica: "Clínica Imagem Total", cat: "Imagem", status: "Atenção", icone: "🫁", nota: "Discreto espessamento pleural à direita. Recomenda-se acompanhamento em 6 meses." },
+  { id: 3, tipo: "Eletrocardiograma", data: "18/01/2025", clinica: "CardioCenter", cat: "Cardio", status: "Normal", icone: "❤️", nota: "Ritmo sinusal. Frequência 72 bpm. Sem alterações de repolarização." },
+  { id: 4, tipo: "Ressonância — Joelho", data: "05/12/2024", clinica: "Diagnósticos Avançados", cat: "Imagem", status: "Alterado", icone: "🦴", nota: "Lesão parcial do ligamento cruzado anterior (LCA) grau II." },
+  { id: 5, tipo: "TSH + T4 Livre", data: "20/10/2024", clinica: "Lab São Lucas", cat: "Laboratorial", status: "Normal", icone: "🧪", nota: "Função tireoidiana dentro da normalidade. TSH 2.1 mUI/L." },
+];
+const STATUS_CFG = { Normal: { bg: "#dcfce7", tx: "#15803d" }, "Atenção": { bg: "#fef9c3", tx: "#a16207" }, Alterado: { bg: "#fee2e2", tx: "#b91c1c" } };
+const DISPOSITIVOS = [
+  { nome: "Apple Watch Series 9", tipo: "iOS", conectado: true, sync: "Há 2 min", icone: "⌚" },
+  { nome: "Garmin Forerunner", tipo: "Wearable", conectado: true, sync: "Há 18 min", icone: "⌚" },
+  { nome: "Withings Body+", tipo: "Balança", conectado: false, sync: null, icone: "⚖️" },
+  { nome: "FreeStyle Libre", tipo: "Glicemia", conectado: false, sync: null, icone: "🩸" },
+];
+const METRICAS = [
+  { label: "FC repouso", val: "63", un: "bpm", cor: "#dc2626", icone: "❤️", obs: "↓ 4 vs mês ant." },
+  { label: "Passos hoje", val: "8.742", un: "", cor: "#f97316", icone: "👟", obs: "meta 10.000" },
+  { label: "Sono", val: "7h12", un: "", cor: "#6366f1", icone: "😴", obs: "qualidade 82%" },
+  { label: "SpO₂", val: "98", un: "%", cor: "#3b82f6", icone: "🫁", obs: "normal" },
+  { label: "Pressão", val: "118/76", un: "", cor: "#9333ea", icone: "🩸", obs: "ótima" },
+  { label: "HRV", val: "48", un: "ms", cor: "#059669", icone: "📊", obs: "recuperação boa" },
+];
+
+function StatusBadge({ status }) {
+  const c = STATUS_CFG[status] || STATUS_CFG.Normal;
+  return <span style={{ background: c.bg, color: c.tx, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>{status}</span>;
+}
+
+/* ─── PAINEL CONSULTAS ──────────────────────────────────────────── */
+function PainelConsultas() {
+  const p = CONSULTAS[0];
+  return (
+    <div>
+      <div style={{ background: `linear-gradient(135deg, ${p.cor} 0%, ${T.green900} 100%)`, borderRadius: 16, padding: "20px 24px", marginBottom: 18, color: "white" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <span style={{ fontSize: 11, color: T.mint, fontWeight: 700, letterSpacing: 1 }}>⏰ PRÓXIMA CONSULTA</span>
+          <span style={{ background: "rgba(255,255,255,0.2)", padding: "2px 10px", borderRadius: 12, fontSize: 11, fontWeight: 800 }}>EM {p.dias} DIAS</span>
+        </div>
+        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>{p.icone}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 900, fontSize: 20 }}>{p.medico}</div>
+            <div style={{ fontSize: 12, color: T.mint }}>{p.esp}</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 4 }}>{p.motivo}</div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginTop: 14 }}>
+          {[["📅 DATA", `${p.data}`, p.dia], ["🕐 HORÁRIO", p.hora, "30 min"], [p.tipo === "telemedicina" ? "💻 ONLINE" : "📍 LOCAL", p.tipo === "telemedicina" ? "Telemedicina" : "Presencial", p.local.split("·")[0]]].map((c) => (
+            <div key={c[0]} style={{ background: "rgba(255,255,255,0.12)", borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ fontSize: 9, color: T.mint, fontWeight: 700 }}>{c[0]}</div>
+              <div style={{ fontSize: 13, fontWeight: 800, marginTop: 2 }}>{c[1]}</div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)" }}>{c[2]}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+          <button style={{ flex: 1, background: "white", color: p.cor, border: "none", borderRadius: 10, padding: "11px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+            {p.tipo === "telemedicina" ? "💻 Entrar na sala" : "📍 Ver no mapa"}
+          </button>
+          <button style={{ background: "rgba(255,255,255,0.2)", color: "white", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 10, padding: "11px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Detalhes</button>
+        </div>
+      </div>
+
+      <div style={{ fontWeight: 800, fontSize: 13, color: T.slate800, marginBottom: 10 }}>📅 Próximas ({CONSULTAS.length - 1})</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+        {CONSULTAS.slice(1).map((c) => (
+          <div key={c.id} style={{ background: T.white, border: `1px solid ${T.slate200}`, borderLeft: `4px solid ${c.cor}`, borderRadius: 14, padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }}>
+            <Avatar iniciais={c.iniciais} size={42} bg={c.cor} />
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontWeight: 800, fontSize: 14, color: T.slate800 }}>{c.medico}</span>
+                {c.tipo === "telemedicina" && <span style={{ background: `${T.blue}20`, color: T.blue, fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 8 }}>💻 ONLINE</span>}
+              </div>
+              <div style={{ fontSize: 11, color: T.slate600 }}>{c.esp} · {c.data} · {c.hora}</div>
+              <div style={{ fontSize: 11, color: T.slate400, marginTop: 3, fontStyle: "italic" }}>{c.motivo}</div>
+            </div>
+            <span style={{ background: "#dcfce7", color: "#166534", fontSize: 9, fontWeight: 800, padding: "2px 8px", borderRadius: 10 }}>✓ CONFIRMADA</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ fontWeight: 800, fontSize: 13, color: T.slate800, marginBottom: 10 }}>📋 Histórico</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+        {CONSULTAS_PASSADAS.map((c) => (
+          <div key={c.id} style={{ background: T.white, border: `1px solid ${T.slate200}`, borderRadius: 12, padding: "12px 16px", display: "flex", gap: 12, alignItems: "center" }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: T.slate800 }}>{c.medico} · <span style={{ color: T.slate400, fontWeight: 500 }}>{c.esp}</span></div>
+              <div style={{ fontSize: 11, color: T.slate600, marginTop: 2 }}>{c.data} · {c.diag} <span style={{ background: "#ede9fe", color: "#5b21b6", fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 6 }}>{c.cid}</span></div>
+            </div>
+            <span style={{ fontSize: 11, color: "#f59e0b" }}>{"⭐".repeat(c.nota)}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: T.white, border: `1px solid ${T.slate200}`, borderRadius: 14, padding: "16px 18px" }}>
+        <div style={{ fontWeight: 800, fontSize: 13, color: T.slate800, marginBottom: 12 }}>➕ Agendar nova consulta</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+          {ESPECIALIDADES.map((e) => (
+            <div key={e.nome} style={{ background: T.slate50, border: `1px solid ${T.slate200}`, borderRadius: 12, padding: "12px 8px", textAlign: "center", cursor: "pointer" }}>
+              <div style={{ fontSize: 24 }}>{e.icone}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.slate800, marginTop: 4 }}>{e.nome}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── PAINEL EXAMES ─────────────────────────────────────────────── */
+function PainelExames() {
+  const [cat, setCat] = useState("Todos");
+  const [sel, setSel] = useState(null);
+  const cats = ["Todos", "Laboratorial", "Imagem", "Cardio"];
+  const lista = cat === "Todos" ? EXAMES : EXAMES.filter((e) => e.cat === cat);
+  const atencao = EXAMES.filter((e) => e.status !== "Normal").length;
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
+        {[["📁 Total", EXAMES.length, T.navy], ["⚠️ Requerem atenção", atencao, T.amber], ["🧪 Categorias", 3, T.teal]].map((c) => (
+          <div key={c[0]} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", borderLeft: `4px solid ${c[2]}`, boxShadow: "0 1px 3px #0001" }}>
+            <div style={{ fontSize: 24, fontWeight: 900, color: c[2], lineHeight: 1.1 }}>{c[1]}</div>
+            <div style={{ fontSize: 10, color: T.slate400, marginTop: 2 }}>{c[0]}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+        {cats.map((c) => (
+          <button key={c} onClick={() => setCat(c)} style={{ padding: "6px 12px", borderRadius: 18, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: cat === c ? T.navy : T.slate100, color: cat === c ? "white" : T.slate600, fontFamily: "inherit" }}>{c}</button>
+        ))}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {lista.map((e) => (
+          <div key={e.id} onClick={() => setSel(e)} style={{ background: T.white, border: `1px solid ${T.slate200}`, borderRadius: 13, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }}>
+            <div style={{ width: 44, height: 44, borderRadius: 11, background: `${T.blue}12`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{e.icone}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: T.slate800 }}>{e.tipo}</div>
+              <div style={{ fontSize: 11, color: T.slate400, marginTop: 2 }}>{e.clinica} · {e.data}</div>
+            </div>
+            <StatusBadge status={e.status} />
+          </div>
+        ))}
+      </div>
+      {sel && (
+        <div onClick={() => setSel(null)} style={{ position: "fixed", inset: 0, background: "#00000060", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
+          <div onClick={(ev) => ev.stopPropagation()} style={{ background: T.white, borderRadius: 20, padding: 26, maxWidth: 440, width: "100%" }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
+              <span style={{ fontSize: 32 }}>{sel.icone}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 800, fontSize: 17, color: T.slate800 }}>{sel.tipo}</div>
+                <div style={{ fontSize: 12, color: T.slate400 }}>{sel.clinica} · {sel.data}</div>
+              </div>
+              <StatusBadge status={sel.status} />
+            </div>
+            <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "12px 14px", marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 11, color: "#92400e", marginBottom: 5 }}>📝 LAUDO / OBSERVAÇÕES</div>
+              <div style={{ fontSize: 13, color: "#78350f", lineHeight: 1.6 }}>{sel.nota}</div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn variant="primary" style={{ flex: 1 }}>📥 Baixar PDF</Btn>
+              <Btn variant="secondary" onClick={() => setSel(null)}>Fechar</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── PAINEL SAÚDE CONECTADA ────────────────────────────────────── */
+function PainelSaudeConectada() {
+  const [disp, setDisp] = useState(DISPOSITIVOS);
+  const conectados = disp.filter((d) => d.conectado).length;
+  return (
+    <div>
+      <div style={{ background: `linear-gradient(135deg, ${T.teal}15, ${T.teal}05)`, border: `1px solid ${T.teal}40`, borderRadius: 14, padding: "14px 18px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: T.teal, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📡</div>
+          <div>
+            <div style={{ fontWeight: 800, color: T.teal, fontSize: 13 }}>{conectados} dispositivos conectados</div>
+            <div style={{ fontSize: 11, color: T.slate600 }}>Sincronização automática ativa</div>
+          </div>
+        </div>
+        <span style={{ fontSize: 11, color: T.teal, fontWeight: 700 }}>● SYNC</span>
+      </div>
+
+      <div style={{ background: "#7f1d1d10", border: "1px solid #fca5a5", borderLeft: "4px solid #dc2626", borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 12, alignItems: "center" }}>
+        <span style={{ fontSize: 24 }}>⚠️</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: "#b91c1c" }}>Possível arritmia detectada</div>
+          <div style={{ fontSize: 11, color: T.slate600, marginTop: 2 }}>Apple Watch registrou ritmo irregular em 18/04 às 22:15 — ECG salvo no prontuário.</div>
+        </div>
+        <Btn variant="danger" small>Ver ECG</Btn>
+      </div>
+
+      <div style={{ fontWeight: 800, fontSize: 13, color: T.slate800, marginBottom: 10 }}>📍 Métricas de hoje</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 18 }}>
+        {METRICAS.map((m) => (
+          <div key={m.label} style={{ background: T.white, border: `1px solid ${T.slate200}`, borderRadius: 14, padding: "14px 16px" }}>
+            <div style={{ fontSize: 16 }}>{m.icone}</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: m.cor, lineHeight: 1.1, marginTop: 4 }}>{m.val}<span style={{ fontSize: 11, color: T.slate400, marginLeft: 3 }}>{m.un}</span></div>
+            <div style={{ fontSize: 10, color: T.slate400, fontWeight: 700, marginTop: 2 }}>{m.label}</div>
+            <div style={{ fontSize: 10, color: T.slate500, marginTop: 1 }}>{m.obs}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ fontWeight: 800, fontSize: 13, color: T.slate800, marginBottom: 10 }}>📱 Dispositivos</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {disp.map((d, i) => (
+          <div key={d.nome} style={{ background: T.white, border: `1px solid ${d.conectado ? T.teal + "40" : T.slate200}`, borderLeft: d.conectado ? `4px solid ${T.teal}` : `1px solid ${T.slate200}`, borderRadius: 12, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: T.slate100, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{d.icone}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontWeight: 700, fontSize: 14, color: T.slate800 }}>{d.nome}</span>
+                <span style={{ background: T.slate100, color: T.slate600, fontSize: 9, padding: "2px 7px", borderRadius: 8, fontWeight: 700 }}>{d.tipo}</span>
+              </div>
+              {d.conectado ? <div style={{ fontSize: 10, color: T.teal, marginTop: 3, fontWeight: 700 }}>● Sincronizado {d.sync}</div> : <div style={{ fontSize: 10, color: T.slate400, marginTop: 3 }}>Não conectado</div>}
+            </div>
+            <Btn variant={d.conectado ? "secondary" : "teal"} small onClick={() => setDisp(disp.map((x, j) => j === i ? { ...x, conectado: !x.conectado, sync: x.conectado ? null : "Agora" } : x))}>
+              {d.conectado ? "Desconectar" : "+ Conectar"}
+            </Btn>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── APP / SHELL DO PRONTUÁRIO ─────────────────────────────────── */
+const SECOES = {
+  consultas: { icone: "📅", titulo: "Consultas", desc: "Sua próxima consulta, agendamentos, histórico e marcação com especialistas parceiros." },
+  exames: { icone: "🔬", titulo: "Exames", desc: "Resultados de exames laboratoriais e de imagem, com laudos e status clínico." },
+  farmacia: { icone: "💊", titulo: "Farmácia", desc: "A partir da prescrição do prontuário, o paciente recebe a indicação de farmácias, compara preços, escolhe entrega ou retirada e acompanha a adesão ao tratamento." },
+  saude: { icone: "⌚", titulo: "Saúde Conectada", desc: "Dados em tempo real do smartphone, smartwatch e dispositivos médicos, com detecção precoce de alterações." },
+};
+
 export default function DemoProntuarioPage() {
+  const [secao, setSecao] = useState("farmacia");
+  const meta = SECOES[secao];
   return (
     <div style={{ fontFamily: "'Inter', 'DM Sans', 'Segoe UI', sans-serif", minHeight: "100vh", background: "linear-gradient(180deg, #f8fafc 0%, #ecfdf5 100%)" }}>
       {/* Banner de demonstração */}
@@ -592,22 +844,25 @@ export default function DemoProntuarioPage() {
         </div>
       </header>
 
-      {/* NAV de contexto (Farmácia é a aba ativa da demo) */}
+      {/* NAV — todas as abas funcionais */}
       <nav style={{ background: T.white, borderBottom: `1px solid ${T.slate200}`, padding: "0 24px", display: "flex", gap: 4, overflowX: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         {[
-          { id: "consultas", label: "Consultas", on: false },
-          { id: "exames", label: "Exames", on: false },
-          { id: "farmacia", label: "Farmácia", on: true },
-          { id: "saude", label: "Saúde Conectada", on: false },
-        ].map((item) => (
-          <div key={item.id} style={{
-            padding: "14px 14px", fontWeight: item.on ? 800 : 600,
-            color: item.on ? T.green800 : T.slate400,
-            background: item.on ? T.green50 : "transparent",
-            borderBottom: item.on ? `3px solid ${T.green700}` : "3px solid transparent",
-            fontSize: 12.5, whiteSpace: "nowrap",
-          }}>{item.label}{!item.on && <span style={{ fontSize: 9, marginLeft: 5, color: T.slate300 }}>em breve</span>}</div>
-        ))}
+          { id: "consultas", label: "Consultas" },
+          { id: "exames", label: "Exames" },
+          { id: "farmacia", label: "Farmácia" },
+          { id: "saude", label: "Saúde Conectada" },
+        ].map((item) => {
+          const ativo = secao === item.id;
+          return (
+            <button key={item.id} onClick={() => setSecao(item.id)} style={{
+              padding: "14px 14px", fontWeight: ativo ? 800 : 600,
+              color: ativo ? T.green800 : T.slate600,
+              background: ativo ? T.green50 : "transparent",
+              border: "none", borderBottom: ativo ? `3px solid ${T.green700}` : "3px solid transparent",
+              fontSize: 12.5, whiteSpace: "nowrap", cursor: "pointer", fontFamily: "inherit",
+            }}>{item.label}</button>
+          );
+        })}
       </nav>
 
       <main style={{ padding: "24px", maxWidth: 920, margin: "0 auto" }}>
@@ -628,16 +883,17 @@ export default function DemoProntuarioPage() {
           </div>
         </div>
 
-        {/* Título da seção */}
+        {/* Título da seção ativa */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-          <span style={{ fontSize: 20 }}>💊</span>
-          <div style={{ fontWeight: 800, fontSize: 18, color: T.slate800 }}>Farmácia</div>
+          <span style={{ fontSize: 20 }}>{meta.icone}</span>
+          <div style={{ fontWeight: 800, fontSize: 18, color: T.slate800 }}>{meta.titulo}</div>
         </div>
-        <div style={{ fontSize: 13, color: T.slate400, marginBottom: 20 }}>
-          A partir da prescrição do prontuário, o paciente recebe a indicação de farmácias, compara preços, escolhe entrega ou retirada e acompanha a adesão ao tratamento.
-        </div>
+        <div style={{ fontSize: 13, color: T.slate400, marginBottom: 20 }}>{meta.desc}</div>
 
-        <PainelFarmacia />
+        {secao === "consultas" && <PainelConsultas />}
+        {secao === "exames" && <PainelExames />}
+        {secao === "farmacia" && <PainelFarmacia />}
+        {secao === "saude" && <PainelSaudeConectada />}
       </main>
     </div>
   );

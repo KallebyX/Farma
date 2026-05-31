@@ -225,6 +225,8 @@ model Patient {
   redemptions          Redemption[]
   affiliateClicks      AffiliateClick[]
   affiliateConversions AffiliateConversion[]
+  wearableConnections  WearableConnection[]
+  wearableSamples      WearableSample[]
 
   @@unique([pharmacyId, phone])
   @@index([pharmacyId, status])
@@ -697,4 +699,82 @@ model WebhookDelivery {
 
   @@index([status, createdAt])
   @@index([endpointId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wearables / Health data (Apple Watch, Samsung, Garmin, Fitbit, Oura, …)
+// OAuth providers store tokens; SDK providers (Apple/Samsung) push via ingest.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum WearableProvider {
+  APPLE_HEALTH
+  SAMSUNG_HEALTH
+  GOOGLE_FIT
+  GARMIN
+  FITBIT
+  OURA
+  WITHINGS
+  POLAR
+  MANUAL
+}
+
+enum WearableConnStatus {
+  PENDING      // awaiting OAuth callback or first ingest
+  CONNECTED
+  ERROR
+  REVOKED
+}
+
+model WearableConnection {
+  id             String             @id @default(uuid())
+  patientId      String
+  provider       WearableProvider
+  status         WearableConnStatus @default(PENDING)
+  externalUserId String?            // provider's user id
+  accessToken    String?            // OAuth (encrypt at rest in prod via DB/KMS)
+  refreshToken   String?
+  expiresAt      DateTime?
+  scopes         String[]           @default([])
+  ingestTokenHash String?           // sha-256 of the push token (Apple/Samsung/SDK)
+  lastSyncAt     DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, provider])
+  @@index([patientId])
+}
+
+enum HealthMetric {
+  HEART_RATE
+  RESTING_HR
+  STEPS
+  SLEEP_MINUTES
+  SPO2
+  HRV
+  CALORIES
+  WEIGHT
+  GLUCOSE
+  BLOOD_PRESSURE_SYS
+  BLOOD_PRESSURE_DIA
+  TEMPERATURE
+}
+
+model WearableSample {
+  id         String           @id @default(uuid())
+  patientId  String
+  provider   WearableProvider
+  metric     HealthMetric
+  value      Float
+  unit       String
+  recordedAt DateTime
+  source     String?          // device label e.g. "Apple Watch Series 9"
+  externalId String?          // provider sample id (idempotency)
+  createdAt  DateTime         @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, metric, recordedAt, provider])
+  @@index([patientId, metric, recordedAt])
 }
