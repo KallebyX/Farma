@@ -128,6 +128,12 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                         instructions: p.instructions,
                       })}
                     </p>
+                    {(p.batchLot || p.expiryDate) && (
+                      <div className="mt-2 ml-5 flex flex-wrap items-center gap-2">
+                        {p.batchLot && <Badge tone="slate">Lote {p.batchLot}</Badge>}
+                        {p.expiryDate && <ExpiryBadge date={p.expiryDate} />}
+                      </div>
+                    )}
                   </div>
                   <RxStatusBadge status={p.status} />
                 </div>
@@ -185,6 +191,12 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       </section>
     </PageShell>
   );
+}
+
+function ExpiryBadge({ date }: { date: Date }) {
+  const days = Math.ceil((new Date(date).getTime() - Date.now()) / 86_400_000);
+  const tone = days < 0 ? "danger" : days <= 30 ? "rose" : days <= 90 ? "amber" : "emerald";
+  return <Badge tone={tone}>⚠ {days < 0 ? `Vencido em ${fmtDateBR(date)}` : `Vence ${fmtDateBR(date)}`}</Badge>;
 }
 
 function adherenceColor(rate: number | null) {

@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { parseGs1 } from "@/lib/gs1";
+
+type BarcodeDetectorLike = { detect: (s: unknown) => Promise<{ rawValue: string }[]> };
 
 type Med = {
   id: string;
@@ -28,6 +31,79 @@ export function AddPrescription({ patientId }: { patientId: string }) {
   const [doseAmount, setDoseAmount] = useState("1 comprimido");
   const [durationDays, setDurationDays] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("");
+  // Receita & rastreabilidade
+  const [batchLot, setBatchLot] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [prescriptionRef, setPrescriptionRef] = useState("");
+  const [photoKey, setPhotoKey] = useState<string | null>(null);
+  const [photoName, setPhotoName] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [scan, setScan] = useState<null | "caixa" | "receita">(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  function stopScan() {
+    setScan(null);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }
+
+  async function startScan(mode: "caixa" | "receita") {
+    const Ctor = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector;
+    if (!Ctor || !navigator.mediaDevices?.getUserMedia) { setError("Câmera/leitor indisponível — preencha manualmente"); return; }
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      streamRef.current = stream;
+      setScan(mode);
+      const detector = new Ctor({ formats: mode === "caixa" ? ["data_matrix", "qr_code", "code_128", "ean_13"] : ["qr_code", "data_matrix"] });
+      // wait a tick for the <video> to mount
+      setTimeout(async () => {
+        const video = videoRef.current;
+        if (!video) return;
+        video.srcObject = stream;
+        await video.play().catch(() => {});
+        const tick = async () => {
+          if (!streamRef.current || !videoRef.current) return;
+          try {
+            const codes = await detector.detect(videoRef.current);
+            if (codes[0]?.rawValue) { handleScan(mode, codes[0].rawValue); return; }
+          } catch { /* keep scanning */ }
+          rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+      }, 50);
+    } catch { setError("Não foi possível abrir a câmera"); stopScan(); }
+  }
+
+  function handleScan(mode: "caixa" | "receita", raw: string) {
+    if (mode === "caixa") {
+      const { lote, validade } = parseGs1(raw);
+      if (lote) setBatchLot(lote);
+      if (validade) setExpiryDate(validade);
+      if (!lote && !validade) setError("Não reconheci lote/validade — preencha manualmente");
+    } else {
+      setPrescriptionRef(raw.slice(0, 200));
+    }
+    stopScan();
+  }
+
+  async function uploadPhoto(file: File) {
+    setUploading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      fd.set("patientId", patientId);
+      const r = await fetch("/api/prescriptions/photo", { method: "POST", body: fd });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) { setError(j.error ?? "Falha ao enviar a foto"); return; }
+      setPhotoKey(j.key);
+      setPhotoName(file.name);
+    } finally { setUploading(false); }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -54,6 +130,12 @@ export function AddPrescription({ patientId }: { patientId: string }) {
     setDoseAmount("1 comprimido");
     setDurationDays("");
     setQuantity("");
+    setBatchLot("");
+    setExpiryDate("");
+    setPrescriptionRef("");
+    setPhotoKey(null);
+    setPhotoName(null);
+    stopScan();
     setError(null);
   }
 
@@ -74,6 +156,10 @@ export function AddPrescription({ patientId }: { patientId: string }) {
       doseAmount,
       quantityDispensed: quantity ? Number(quantity) : undefined,
       durationDays: durationDays ? Number(durationDays) : undefined,
+      batchLot: batchLot || undefined,
+      expiryDate: expiryDate || undefined,
+      prescriptionRef: prescriptionRef || undefined,
+      photoKey: photoKey || undefined,
     };
     if (mode === "interval") payload.intervalHours = Number(intervalHours);
     else payload.fixedTimes = fixedTimes.filter(Boolean);
@@ -260,6 +346,29 @@ export function AddPrescription({ patientId }: { patientId: string }) {
                 </div>
               </div>
 
+              <div className="rounded-lg border border-slate-200 p-3 space-y-3">
+                <p className="text-sm font-semibold text-slate-700">Receita & rastreabilidade</p>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => startScan("receita")} className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">📷 Escanear receita (QR)</button>
+                  <button type="button" onClick={() => startScan("caixa")} className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">📷 Escanear caixa (lote/validade)</button>
+                  <label className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer">
+                    {uploading ? "Enviando…" : photoName ? "✓ Foto anexada" : "📄 Foto da receita"}
+                    <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadPhoto(file); }} />
+                  </label>
+                </div>
+                {prescriptionRef ? <p className="text-[11px] text-slate-500 break-all">Receita: {prescriptionRef}</p> : null}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600">Lote</label>
+                    <input value={batchLot} onChange={(e) => setBatchLot(e.target.value)} placeholder="da caixa" className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600">Validade {expiryDate ? "→ cria aviso" : ""}</label>
+                    <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-3">
@@ -280,6 +389,18 @@ export function AddPrescription({ patientId }: { patientId: string }) {
               </button>
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {scan ? (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 px-4">
+          <p className="mb-3 text-sm text-white">
+            {scan === "caixa" ? "Aponte para o código da caixa (lote/validade)" : "Aponte para o QR da receita"}
+          </p>
+          <video ref={videoRef} className="w-full max-w-sm rounded-xl bg-black" muted playsInline />
+          <button type="button" onClick={stopScan} className="mt-4 rounded-md bg-white px-5 py-2 text-sm font-semibold text-slate-800">
+            Cancelar
+          </button>
         </div>
       ) : null}
     </>
