@@ -102,8 +102,11 @@ export default function EntrarPage() {
             </button>
           </>
         )}
-        <p className="mt-5 text-center text-[11px] text-slate-400">
-          Acesso exclusivo para pacientes cadastrados. Seu número é o mesmo dos lembretes.
+        <p className="mt-5 text-center text-xs text-slate-500">
+          Ainda não tem conta? <a href="/cadastro" className="font-medium text-emerald-700 hover:underline">Criar agora</a>
+        </p>
+        <p className="mt-2 text-center text-[11px] text-slate-400">
+          Seu número é o mesmo dos lembretes.
         </p>
       </div>
     </main>
