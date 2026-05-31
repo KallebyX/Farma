@@ -224,6 +224,9 @@ export function HubClient(props: {
         {/* Appointments */}
         <MyAppointmentsHubSection token={props.token} />
 
+        {/* Digital prescription upload */}
+        <RxUploadHubSection token={props.token} onFlash={flash} />
+
         {/* Nota premiada (NF-e QR → pontos) */}
         <ReceiptScanHubSection token={props.token} onFlash={flash} />
 
@@ -650,6 +653,67 @@ function ProfileHubSection({ token, onFlash }: { token: string; onFlash: (m: str
             <button onClick={save} disabled={busy} className="flex-1 rounded-lg bg-emerald-400 text-emerald-950 font-bold text-sm py-2 disabled:opacity-50">{busy ? "Salvando…" : "Salvar"}</button>
             <button onClick={() => setOpen(false)} className="rounded-lg bg-white/10 text-white text-sm px-4">Cancelar</button>
           </div>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+type HubRx = { id: string; fileName: string; signature: string; status: string; createdAt: string };
+const RX_SIG: Record<string, string> = { VERIFIED_ICP: "✓ assinada (ICP)", SIGNED_DETECTED: "assinada · validação pendente", UNSIGNED: "receita comum", INVALID: "assinatura inválida" };
+const RX_STATUS: Record<string, string> = { SUBMITTED: "enviada", LEAD: "enviada à farmácia", DISPENSED: "dispensada", EXPIRED: "expirada", REJECTED: "recusada" };
+
+function RxUploadHubSection({ token, onFlash }: { token: string; onFlash: (m: string) => void }) {
+  const [items, setItems] = useState<HubRx[]>([]);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function load() {
+    const r = await fetch("/api/patient/prescriptions", { headers: { Authorization: `Bearer ${token}` } });
+    const j = await r.json().catch(() => ({}));
+    if (j.ok) setItems(j.prescriptions as HubRx[]);
+  }
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function upload() {
+    const file = fileRef.current?.files?.[0];
+    if (!file) { onFlash("Selecione o arquivo da receita"); return; }
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      const r = await fetch("/api/patient/prescriptions", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) { onFlash(j.error ?? "Falha no envio"); return; }
+      if (fileRef.current) fileRef.current.value = "";
+      onFlash(j.signatureNote?.includes("detectada") ? "Receita assinada enviada à farmácia! 📄" : "Receita enviada! 📄");
+      load();
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <Section title="📄 Enviar receita" subtitle="Receita digital (PDF/.p7s) ou foto — avaliamos a assinatura e avisamos sua farmácia">
+      <div className="rounded-xl bg-white/5 border border-white/10 p-3.5">
+        <input ref={fileRef} type="file" accept="application/pdf,image/*,.p7s"
+          className="w-full text-[12px] text-emerald-100/70 file:mr-2 file:rounded-md file:border-0 file:bg-emerald-400 file:px-3 file:py-1.5 file:text-[12px] file:font-bold file:text-emerald-950" />
+        <button onClick={upload} disabled={busy} className="mt-2 w-full rounded-lg bg-emerald-400 text-emerald-950 font-bold text-sm py-2 disabled:opacity-60">
+          {busy ? "Enviando…" : "+ Enviar receita"}
+        </button>
+      </div>
+      {items.length > 0 && (
+        <div className="mt-2.5 space-y-1.5">
+          {items.map((rx) => (
+            <div key={rx.id} className="rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm truncate">{rx.fileName}</span>
+                <span className="text-[10px] text-emerald-100/60 shrink-0">{RX_STATUS[rx.status] ?? rx.status}</span>
+              </div>
+              <div className="text-[10px] text-emerald-100/40">{RX_SIG[rx.signature] ?? rx.signature}</div>
+            </div>
+          ))}
         </div>
       )}
     </Section>
