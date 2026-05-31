@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 type Account = { points: number; lifetime: number; tier: string; streakDays: number };
@@ -218,6 +218,9 @@ export function HubClient(props: {
           </p>
         </Section>
 
+        {/* Exams */}
+        <ExamsHubSection token={props.token} onFlash={flash} />
+
         {/* Rewards */}
         <Section title="🎁 Resgatar recompensas" subtitle={`Você tem ${props.account.points.toLocaleString("pt-BR")} pontos`}>
           <div className="space-y-2.5">
@@ -300,6 +303,73 @@ export function HubClient(props: {
         </div>
       )}
     </main>
+  );
+}
+
+type HubExam = { id: string; title: string; category: string | null; sizeBytes: number; createdAt: string; uploadedBy: string | null };
+
+function ExamsHubSection({ token, onFlash }: { token: string; onFlash: (m: string) => void }) {
+  const [exams, setExams] = useState<HubExam[]>([]);
+  const [title, setTitle] = useState("");
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const authHeader = { Authorization: `Bearer ${token}` };
+
+  async function load() {
+    const r = await fetch("/api/patient/exams", { headers: authHeader });
+    const j = await r.json().catch(() => ({}));
+    if (j.ok) setExams(j.exams as HubExam[]);
+  }
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function upload() {
+    const file = fileRef.current?.files?.[0];
+    if (!file) { onFlash("Selecione um arquivo"); return; }
+    if (title.trim().length < 2) { onFlash("Dê um nome ao exame"); return; }
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      fd.set("title", title);
+      const r = await fetch("/api/patient/exams", { method: "POST", headers: authHeader, body: fd });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) { onFlash(j.error ?? "Falha no upload"); return; }
+      setTitle("");
+      if (fileRef.current) fileRef.current.value = "";
+      onFlash("Exame enviado! 📄");
+      load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Section title="📄 Meus exames" subtitle="Envie e guarde seus exames; a farmácia também pode ver">
+      <div className="rounded-xl bg-white/5 border border-white/10 p-3.5">
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nome do exame (ex.: Hemograma)"
+          className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm placeholder:text-emerald-100/40 outline-none" />
+        <input ref={fileRef} type="file" accept="application/pdf,image/*"
+          className="mt-2 w-full text-[12px] text-emerald-100/70 file:mr-2 file:rounded-md file:border-0 file:bg-emerald-400 file:px-3 file:py-1.5 file:text-[12px] file:font-bold file:text-emerald-950" />
+        <button onClick={upload} disabled={busy}
+          className="mt-2 w-full rounded-lg bg-emerald-400 text-emerald-950 font-bold text-sm py-2 disabled:opacity-60">
+          {busy ? "Enviando…" : "+ Enviar exame"}
+        </button>
+      </div>
+      {exams.length > 0 && (
+        <div className="mt-2.5 space-y-1.5">
+          {exams.map((e) => (
+            <a key={e.id} href={`/api/patient/exams/${e.id}/download?t=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer"
+              className="flex items-center justify-between rounded-lg bg-white/5 border border-white/10 px-3 py-2 hover:bg-white/10">
+              <span className="text-sm truncate">{e.title}</span>
+              <span className="text-[11px] text-emerald-100/50 shrink-0 ml-2">abrir →</span>
+            </a>
+          ))}
+        </div>
+      )}
+    </Section>
   );
 }
 

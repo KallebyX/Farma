@@ -6,6 +6,7 @@ import { summarizePosology } from "@/lib/prescriptions/posology";
 import { AddPrescription } from "./add-prescription";
 import { ConsentButton } from "./consent-button";
 import { CustomMedications } from "./custom-medications";
+import { ExamsManager } from "@/components/exams/exams-manager";
 import {
   PageShell, Card, Badge, PatientStatusBadge, RxStatusBadge, Button, Icon,
 } from "@/components/ui";
@@ -177,6 +178,10 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             })}
           </div>
         )}
+      </section>
+
+      <section className="mt-6">
+        <ExamsManager apiBase="/api/exams" patientId={patient.id} />
       </section>
     </PageShell>
   );
