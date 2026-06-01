@@ -1,23 +1,39 @@
-/* Minimal service worker: enables installability + basic offline.
-   Network-first for GETs, falling back to cache. */
-const CACHE = "farma-v1";
+/* Minimal service worker: installability + basic offline.
+   Network-first for same-origin GETs; ALWAYS resolves to a Response
+   (never undefined) so respondWith doesn't throw "Returned response is null". */
+const CACHE = "farma-v2";
 
 self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener("activate", (event) =>
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+      await self.clients.claim();
+    })(),
+  ),
+);
 
 self.addEventListener("fetch", (event) => {
-  const { request } = event;
-  if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
-  // Never cache API/auth responses.
-  if (new URL(request.url).pathname.startsWith("/api/")) return;
+  const req = event.request;
+  if (req.method !== "GET") return;
+  let url;
+  try { url = new URL(req.url); } catch { return; }
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
 
   event.respondWith(
-    fetch(request)
-      .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(request, copy)).catch(() => {});
+    (async () => {
+      try {
+        const res = await fetch(req);
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+        }
         return res;
-      })
-      .catch(() => caches.match(request)),
+      } catch {
+        const cached = await caches.match(req);
+        return cached || Response.error();
+      }
+    })(),
   );
 });
