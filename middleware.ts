@@ -10,6 +10,12 @@ const PUBLIC_PATHS = [
   /^\/sign-up$/,
   /^\/entrar$/,
   /^\/cadastro$/,
+  // PWA assets — must never redirect to /sign-in (breaks manifest + service worker)
+  /^\/manifest\.webmanifest$/,
+  /^\/sw\.js$/,
+  /^\/icons\//,
+  /^\/icon(\?|$)/,
+  /^\/apple-icon(\?|$)/,
   /^\/api\/pharmacies\//,
   /^\/api\/compare$/,
   /^\/demo\//,
