@@ -25,6 +25,7 @@ const PUBLIC_PATHS = [
   /^\/api\/auth\//,
   /^\/api\/cron\//,
   /^\/api\/whatsapp\//,
+  /^\/api\/twilio\//,
   /^\/api\/loyalty\//,
   /^\/api\/affiliate\//,
   /^\/api\/partner\//,

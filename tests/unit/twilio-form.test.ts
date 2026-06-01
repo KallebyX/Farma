@@ -64,6 +64,12 @@ describe("buildTwilioForm — template vs Body", () => {
     const form = buildTwilioForm(msg, { messagingServiceSid: "MG1", templateSid: "HXotp" });
     expect(JSON.parse(form.get("ContentVariables")!)).toEqual({ "1": "123456" });
   });
+
+  it("sets StatusCallback when provided, omits it otherwise", () => {
+    const withCb = buildTwilioForm(textMsg, { from: "+1", statusCallback: "https://x/api/twilio/status" });
+    expect(withCb.get("StatusCallback")).toBe("https://x/api/twilio/status");
+    expect(buildTwilioForm(textMsg, { from: "+1" }).get("StatusCallback")).toBeNull();
+  });
 });
 
 describe("resolveTemplateSid", () => {
