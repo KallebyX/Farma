@@ -31,12 +31,16 @@ export async function requestPatientCode(phone: string): Promise<{ sent: boolean
   await prisma.patientLoginCode.create({
     data: { phone, codeHash: sha256(code), expiresAt: new Date(Date.now() + TTL_MS) },
   });
-  await sendWhatsApp({
+  const res = await sendWhatsApp({
     kind: "text",
     phone,
     text: `🔐 Seu código de acesso ao *Meu Prontuário* é *${code}*.\nVálido por 10 minutos. Não compartilhe.`,
     template: { key: "otp" },
   });
+  // Observability: the OTP is the patient's only way in — log the outcome so a
+  // delivery failure (provider/template) is visible in prod logs.
+  // eslint-disable-next-line no-console
+  console.log(`[otp] send result for ${phone}: ${res.status}${res.error ? ` — ${res.error}` : ""}${res.providerId ? ` (${res.providerId})` : ""}`);
   return { sent: true };
 }
 
