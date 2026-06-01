@@ -536,43 +536,53 @@ function ReceiptScanHubSection({ token, onFlash }: { token: string; onFlash: (m:
 
   async function startScan() {
     if (!navigator.mediaDevices?.getUserMedia) { onFlash("Câmera indisponível — cole a chave abaixo"); return; }
-    // Native BarcodeDetector (Chrome/Android) when present; else jsQR fallback (Safari/iOS).
-    const Ctor = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       streamRef.current = stream;
+      // Only flip state; the effect below wires the (now-rendered) <video> element.
       setScanning(true);
-      const detector = Ctor ? new Ctor({ formats: ["qr_code"] }) : null;
-      const video = videoRef.current!;
-      video.srcObject = stream;
-      await video.play();
-
-      const tick = async () => {
-        if (!streamRef.current || !videoRef.current) return;
-        const video = videoRef.current;
-        try {
-          if (detector) {
-            const codes = await detector.detect(video);
-            if (codes[0]?.rawValue) { const v = codes[0].rawValue; stopScan(); submit(v); return; }
-          } else if (video.readyState >= 2 && video.videoWidth > 0) {
-            // jsQR fallback: draw the current frame to a canvas and decode.
-            const canvas = canvasRef.current ?? document.createElement("canvas");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext("2d", { willReadFrequently: true });
-            if (ctx) {
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-              const found = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
-              if (found?.data) { const v = found.data; stopScan(); submit(v); return; }
-            }
-          }
-        } catch { /* keep trying */ }
-        rafRef.current = requestAnimationFrame(tick);
-      };
-      rafRef.current = requestAnimationFrame(tick);
     } catch { onFlash("Não foi possível abrir a câmera"); stopScan(); }
   }
+
+  // Wire the camera stream + detection loop AFTER <video> is in the DOM (scanning=true).
+  // Native BarcodeDetector (Chrome/Android) when present; else jsQR fallback (Safari/iOS).
+  useEffect(() => {
+    if (!scanning) return;
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+    const Ctor = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector;
+    const detector = Ctor ? new Ctor({ formats: ["qr_code"] }) : null;
+    let cancelled = false;
+    video.srcObject = stream;
+    video.play().catch(() => {});
+
+    const tick = async () => {
+      if (cancelled || !videoRef.current) return;
+      const v = videoRef.current;
+      try {
+        if (detector) {
+          const codes = await detector.detect(v);
+          if (codes[0]?.rawValue) { const raw = codes[0].rawValue; stopScan(); submit(raw); return; }
+        } else if (v.readyState >= 2 && v.videoWidth > 0) {
+          const canvas = canvasRef.current ?? document.createElement("canvas");
+          canvas.width = v.videoWidth;
+          canvas.height = v.videoHeight;
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          if (ctx) {
+            ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+            const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const found = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
+            if (found?.data) { const raw = found.data; stopScan(); submit(raw); return; }
+          }
+        }
+      } catch { /* keep trying */ }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { cancelled = true; if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanning]);
 
   return (
     <Section title="🧾 Nota premiada" subtitle="Escaneie o QR da nota fiscal e ganhe pontos">
