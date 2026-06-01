@@ -44,93 +44,93 @@ ALTER TABLE "Session"            ENABLE ROW LEVEL SECURITY;
 -- Direct pharmacyId tables --------------------------------------------------
 DROP POLICY IF EXISTS tenant_isolation ON "Pharmacy";
 CREATE POLICY tenant_isolation ON "Pharmacy" TO farma_app
-  USING (id = current_setting('app.pharmacy_id', true));
+  USING (id = (select current_setting('app.pharmacy_id', true)));
 
 DROP POLICY IF EXISTS tenant_isolation ON "Membership";
 CREATE POLICY tenant_isolation ON "Membership" TO farma_app
-  USING ("pharmacyId" = current_setting('app.pharmacy_id', true))
-  WITH CHECK ("pharmacyId" = current_setting('app.pharmacy_id', true));
+  USING ("pharmacyId" = (select current_setting('app.pharmacy_id', true)))
+  WITH CHECK ("pharmacyId" = (select current_setting('app.pharmacy_id', true)));
 
 DROP POLICY IF EXISTS tenant_isolation ON "Invitation";
 CREATE POLICY tenant_isolation ON "Invitation" TO farma_app
-  USING ("pharmacyId" = current_setting('app.pharmacy_id', true))
-  WITH CHECK ("pharmacyId" = current_setting('app.pharmacy_id', true));
+  USING ("pharmacyId" = (select current_setting('app.pharmacy_id', true)))
+  WITH CHECK ("pharmacyId" = (select current_setting('app.pharmacy_id', true)));
 
 DROP POLICY IF EXISTS tenant_isolation ON "Patient";
 CREATE POLICY tenant_isolation ON "Patient" TO farma_app
-  USING ("pharmacyId" = current_setting('app.pharmacy_id', true))
-  WITH CHECK ("pharmacyId" = current_setting('app.pharmacy_id', true));
+  USING ("pharmacyId" = (select current_setting('app.pharmacy_id', true)))
+  WITH CHECK ("pharmacyId" = (select current_setting('app.pharmacy_id', true)));
 
 DROP POLICY IF EXISTS tenant_isolation ON "BotConversation";
 CREATE POLICY tenant_isolation ON "BotConversation" TO farma_app
-  USING ("pharmacyId" = current_setting('app.pharmacy_id', true))
-  WITH CHECK ("pharmacyId" = current_setting('app.pharmacy_id', true));
+  USING ("pharmacyId" = (select current_setting('app.pharmacy_id', true)))
+  WITH CHECK ("pharmacyId" = (select current_setting('app.pharmacy_id', true)));
 
 -- Via Invitation ------------------------------------------------------------
 DROP POLICY IF EXISTS tenant_isolation ON "InvitationDelivery";
 CREATE POLICY tenant_isolation ON "InvitationDelivery" TO farma_app
   USING (EXISTS (SELECT 1 FROM "Invitation" i
                  WHERE i.id = "InvitationDelivery"."invitationId"
-                   AND i."pharmacyId" = current_setting('app.pharmacy_id', true)))
+                   AND i."pharmacyId" = (select current_setting('app.pharmacy_id', true))))
   WITH CHECK (EXISTS (SELECT 1 FROM "Invitation" i
                  WHERE i.id = "InvitationDelivery"."invitationId"
-                   AND i."pharmacyId" = current_setting('app.pharmacy_id', true)));
+                   AND i."pharmacyId" = (select current_setting('app.pharmacy_id', true))));
 
 -- Via Patient ---------------------------------------------------------------
 DROP POLICY IF EXISTS tenant_isolation ON "PatientConsent";
 CREATE POLICY tenant_isolation ON "PatientConsent" TO farma_app
   USING (EXISTS (SELECT 1 FROM "Patient" p
                  WHERE p.id = "PatientConsent"."patientId"
-                   AND p."pharmacyId" = current_setting('app.pharmacy_id', true)))
+                   AND p."pharmacyId" = (select current_setting('app.pharmacy_id', true))))
   WITH CHECK (EXISTS (SELECT 1 FROM "Patient" p
                  WHERE p.id = "PatientConsent"."patientId"
-                   AND p."pharmacyId" = current_setting('app.pharmacy_id', true)));
+                   AND p."pharmacyId" = (select current_setting('app.pharmacy_id', true))));
 
 DROP POLICY IF EXISTS tenant_isolation ON "Prescription";
 CREATE POLICY tenant_isolation ON "Prescription" TO farma_app
   USING (EXISTS (SELECT 1 FROM "Patient" p
                  WHERE p.id = "Prescription"."patientId"
-                   AND p."pharmacyId" = current_setting('app.pharmacy_id', true)))
+                   AND p."pharmacyId" = (select current_setting('app.pharmacy_id', true))))
   WITH CHECK (EXISTS (SELECT 1 FROM "Patient" p
                  WHERE p.id = "Prescription"."patientId"
-                   AND p."pharmacyId" = current_setting('app.pharmacy_id', true)));
+                   AND p."pharmacyId" = (select current_setting('app.pharmacy_id', true))));
 
 DROP POLICY IF EXISTS tenant_isolation ON "RAMReport";
 CREATE POLICY tenant_isolation ON "RAMReport" TO farma_app
   USING (EXISTS (SELECT 1 FROM "Patient" p
                  WHERE p.id = "RAMReport"."patientId"
-                   AND p."pharmacyId" = current_setting('app.pharmacy_id', true)))
+                   AND p."pharmacyId" = (select current_setting('app.pharmacy_id', true))))
   WITH CHECK (EXISTS (SELECT 1 FROM "Patient" p
                  WHERE p.id = "RAMReport"."patientId"
-                   AND p."pharmacyId" = current_setting('app.pharmacy_id', true)));
+                   AND p."pharmacyId" = (select current_setting('app.pharmacy_id', true))));
 
 -- Via Prescription -> Patient ----------------------------------------------
 DROP POLICY IF EXISTS tenant_isolation ON "ReminderJob";
 CREATE POLICY tenant_isolation ON "ReminderJob" TO farma_app
   USING (EXISTS (SELECT 1 FROM "Prescription" pr JOIN "Patient" p ON p.id = pr."patientId"
                  WHERE pr.id = "ReminderJob"."prescriptionId"
-                   AND p."pharmacyId" = current_setting('app.pharmacy_id', true)))
+                   AND p."pharmacyId" = (select current_setting('app.pharmacy_id', true))))
   WITH CHECK (EXISTS (SELECT 1 FROM "Prescription" pr JOIN "Patient" p ON p.id = pr."patientId"
                  WHERE pr.id = "ReminderJob"."prescriptionId"
-                   AND p."pharmacyId" = current_setting('app.pharmacy_id', true)));
+                   AND p."pharmacyId" = (select current_setting('app.pharmacy_id', true))));
 
 DROP POLICY IF EXISTS tenant_isolation ON "AdherenceEvent";
 CREATE POLICY tenant_isolation ON "AdherenceEvent" TO farma_app
   USING (EXISTS (SELECT 1 FROM "Prescription" pr JOIN "Patient" p ON p.id = pr."patientId"
                  WHERE pr.id = "AdherenceEvent"."prescriptionId"
-                   AND p."pharmacyId" = current_setting('app.pharmacy_id', true)))
+                   AND p."pharmacyId" = (select current_setting('app.pharmacy_id', true))))
   WITH CHECK (EXISTS (SELECT 1 FROM "Prescription" pr JOIN "Patient" p ON p.id = pr."patientId"
                  WHERE pr.id = "AdherenceEvent"."prescriptionId"
-                   AND p."pharmacyId" = current_setting('app.pharmacy_id', true)));
+                   AND p."pharmacyId" = (select current_setting('app.pharmacy_id', true))));
 
 DROP POLICY IF EXISTS tenant_isolation ON "ReturnExpectation";
 CREATE POLICY tenant_isolation ON "ReturnExpectation" TO farma_app
   USING (EXISTS (SELECT 1 FROM "Prescription" pr JOIN "Patient" p ON p.id = pr."patientId"
                  WHERE pr.id = "ReturnExpectation"."prescriptionId"
-                   AND p."pharmacyId" = current_setting('app.pharmacy_id', true)))
+                   AND p."pharmacyId" = (select current_setting('app.pharmacy_id', true))))
   WITH CHECK (EXISTS (SELECT 1 FROM "Prescription" pr JOIN "Patient" p ON p.id = pr."patientId"
                  WHERE pr.id = "ReturnExpectation"."prescriptionId"
-                   AND p."pharmacyId" = current_setting('app.pharmacy_id', true)));
+                   AND p."pharmacyId" = (select current_setting('app.pharmacy_id', true))));
 
 -- Shared catalog: readable by every tenant ---------------------------------
 DROP POLICY IF EXISTS shared_read ON "MedicationCatalog";
