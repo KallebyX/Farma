@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { AppointmentKind, AppointmentStatus } from "@prisma/client";
+import { sendWhatsApp } from "@/lib/whatsapp/client";
 
 /** Appointments / consultas domain service. */
 
@@ -55,6 +56,61 @@ export async function createAppointment(args: CreateApptArgs) {
     select: sel,
   });
   return { ok: true as const, appointment };
+}
+
+export type ApptReminderSummary = { sent: number; failed: number; scanned: number };
+
+/**
+ * Automation: sends a one-time WhatsApp reminder for SCHEDULED appointments
+ * happening within the next `windowMs` (default 24h). Idempotent via
+ * `reminderSentAt`, which is stamped only after a non-failed send.
+ */
+export async function dispatchAppointmentReminders(
+  now: Date = new Date(),
+  windowMs: number = 24 * 60 * 60 * 1000,
+): Promise<ApptReminderSummary> {
+  const summary: ApptReminderSummary = { sent: 0, failed: 0, scanned: 0 };
+  const until = new Date(now.getTime() + windowMs);
+
+  const due = await prisma.appointment.findMany({
+    where: {
+      status: "SCHEDULED",
+      reminderSentAt: null,
+      scheduledAt: { gte: now, lte: until },
+    },
+    orderBy: { scheduledAt: "asc" },
+    take: 200,
+    select: {
+      id: true, title: true, scheduledAt: true, location: true, professional: true,
+      patient: { select: { name: true, phone: true, status: true } },
+    },
+  });
+
+  for (const appt of due) {
+    summary.scanned++;
+    if (appt.patient.status !== "ACTIVE") {
+      await prisma.appointment.update({ where: { id: appt.id }, data: { reminderSentAt: now } });
+      continue;
+    }
+    const when = appt.scheduledAt.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    const where = appt.location ? `\n📍 ${appt.location}` : "";
+    const who = appt.professional ? `\n👤 ${appt.professional}` : "";
+    const first = appt.patient.name.split(/\s+/)[0] ?? appt.patient.name;
+    const result = await sendWhatsApp({
+      kind: "text",
+      phone: appt.patient.phone,
+      text: `🔔 Olá, ${first}! Lembrete do seu compromisso:\n\n📅 *${appt.title}*\n🕐 ${when}${where}${who}\n\nSe precisar remarcar, responda aqui.`,
+      template: { key: "appointment_reminder" },
+    });
+    if (result.status === "FAILED") {
+      summary.failed++;
+      continue;
+    }
+    await prisma.appointment.update({ where: { id: appt.id }, data: { reminderSentAt: now } });
+    summary.sent++;
+  }
+
+  return summary;
 }
 
 export async function updateAppointment(id: string, pharmacyId: string, patch: { status?: string; notes?: string }) {

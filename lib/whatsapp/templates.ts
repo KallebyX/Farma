@@ -16,6 +16,7 @@ export function consentRequest(args: {
       { id: "consent_yes", label: "✅ Aceito" },
       { id: "consent_no", label: "❌ Não aceito" },
     ],
+    template: { key: "welcome" },
   };
 }
 
@@ -52,6 +53,7 @@ export function reminderMessage(args: {
       { id: `r:${args.reminderId}:defer`, label: "⏰ Adiar 30min" },
       { id: `r:${args.reminderId}:refuse`, label: "❌ Não vou tomar" },
     ],
+    template: { key: "reminder" },
   };
 }
 
@@ -183,6 +185,7 @@ export function returnReminder(args: {
       { id: `ret:${args.expectationId}:restocked-away`, label: "Comprei em outro lugar" },
       { id: `ret:${args.expectationId}:stopping`, label: "Vou parar o tratamento" },
     ],
+    template: { key: "return" },
   };
 }
 

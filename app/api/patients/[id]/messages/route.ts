@@ -35,7 +35,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const message = await sendMessage({ patientId: id, pharmacyId: ctx.pharmacyId, direction: "FROM_PHARMACY", body, authorName: me?.name ?? null });
 
     // Best-effort WhatsApp nudge so the patient knows there's a new message.
-    sendWhatsApp({ kind: "text", phone: patient.phone, text: `💬 *${me?.name ?? "Sua farmácia"}* enviou uma mensagem no Meu Prontuário:\n\n${body.trim().slice(0, 500)}` }).catch(() => {});
+    sendWhatsApp({ kind: "text", phone: patient.phone, text: `💬 *${me?.name ?? "Sua farmácia"}* enviou uma mensagem no Meu Prontuário:\n\n${body.trim().slice(0, 500)}`, template: { key: "generic" } }).catch(() => {});
 
     return NextResponse.json({ ok: true, message }, { status: 201 });
   } catch (err) {

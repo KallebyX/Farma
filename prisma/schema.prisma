@@ -101,6 +101,7 @@ model IntegrationConfig {
   twilioWhatsappFrom String?
   twilioMessagingServiceSid String? // MG… (usa o WhatsApp sender do serviço)
   twilioContentSid   String?  // template aprovado p/ msgs proativas (business-initiated)
+  twilioTemplates    Json?    // mapa { otp: "HX…", reminder: "HX…", … } por categoria
   emailProvider      String?  // "resend" | ...
   resendApiKey       String?
   emailFrom          String?
@@ -969,6 +970,7 @@ model Appointment {
   status       AppointmentStatus @default(SCHEDULED)
   notes        String?
   createdBy    String?
+  reminderSentAt DateTime?       // automação: lembrete 24h enviado
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
