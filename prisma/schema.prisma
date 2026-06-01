@@ -40,29 +40,30 @@ enum DeliveryStatus {
 }
 
 model Pharmacy {
-  id          String   @id @default(uuid())
-  cnpj        String   @unique
-  razaoSocial String
-  fantasia    String?
+  id              String   @id @default(uuid())
+  cnpj            String   @unique
+  razaoSocial     String
+  fantasia        String?
   // Referral program config (pharmacy-tunable)
-  referralEnabled Boolean @default(true)
-  referralPoints  Int     @default(50) // points the referrer earns per friend who signs up
+  referralEnabled Boolean  @default(true)
+  referralPoints  Int      @default(50) // points the referrer earns per friend who signs up
   // Location & chain (powers the patient "nearby pharmacies" comparator)
-  chainName   String?  // rede/bandeira para agrupar filiais (ex.: "Drogasil")
-  addressLine String?
-  city        String?
-  state       String?  // UF
-  latitude    Float?
-  longitude   Float?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  chainName       String? // rede/bandeira para agrupar filiais (ex.: "Drogasil")
+  addressLine     String?
+  city            String?
+  state           String? // UF
+  latitude        Float?
+  longitude       Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  members     Membership[]
-  invitations Invitation[]
-  patients    Patient[]
-  apiKeys     ApiKey[]
-  webhooks    WebhookEndpoint[]
-  products    PharmacyProduct[]
+  members      Membership[]
+  invitations  Invitation[]
+  patients     Patient[]
+  apiKeys      ApiKey[]
+  webhooks     WebhookEndpoint[]
+  products     PharmacyProduct[]
+  accountLinks PatientPharmacyLink[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,7 +77,7 @@ model PharmacyProduct {
   name       String
   priceCents Int
   stock      Int      @default(0)
-  couponPct  Int?     // optional discount %
+  couponPct  Int? // optional discount %
   active     Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -94,18 +95,18 @@ model PharmacyProduct {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model IntegrationConfig {
-  id                 String   @id @default("default")
-  whatsappProvider   String?  // "zapi" | "meta" | "twilio" | "mock"
-  twilioAccountSid   String?
-  twilioAuthToken    String?
-  twilioWhatsappFrom String?
+  id                        String   @id @default("default")
+  whatsappProvider          String? // "zapi" | "meta" | "twilio" | "mock"
+  twilioAccountSid          String?
+  twilioAuthToken           String?
+  twilioWhatsappFrom        String?
   twilioMessagingServiceSid String? // MG… (usa o WhatsApp sender do serviço)
-  twilioContentSid   String?  // template aprovado p/ msgs proativas (business-initiated)
-  twilioTemplates    Json?    // mapa { otp: "HX…", reminder: "HX…", … } por categoria
-  emailProvider      String?  // "resend" | ...
-  resendApiKey       String?
-  emailFrom          String?
-  updatedAt          DateTime @updatedAt
+  twilioContentSid          String? // template aprovado p/ msgs proativas (business-initiated)
+  twilioTemplates           Json? // mapa { otp: "HX…", reminder: "HX…", … } por categoria
+  emailProvider             String? // "resend" | ...
+  resendApiKey              String?
+  emailFrom                 String?
+  updatedAt                 DateTime @updatedAt
 }
 
 model User {
@@ -118,10 +119,10 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  memberships  Membership[]
-  invitedBy    Invitation[] @relation("InvitedBy")
-  acceptedBy   Invitation[] @relation("AcceptedBy")
-  sessions     Session[]
+  memberships          Membership[]
+  invitedBy            Invitation[]   @relation("InvitedBy")
+  acceptedBy           Invitation[]   @relation("AcceptedBy")
+  sessions             Session[]
   patientsCreated      Patient[]      @relation("PatientCreatedBy")
   prescriptionsCreated Prescription[] @relation("PrescriptionCreatedBy")
   ramReviewed          RAMReport[]    @relation("RAMReviewedBy")
@@ -213,27 +214,27 @@ enum DosageForm {
 }
 
 model MedicationCatalog {
-  id                 String     @id @default(uuid())
-  cmedGgrem          String?    @unique  // CMED código GGREM (Anvisa regulatory ID, also row key for sync)
-  activeIngredient   String
-  brandName          String
-  dosage             String     // e.g. "50mg", "10mg/ml"
-  form               DosageForm
-  manufacturerName   String?
-  manufacturerCnpj   String?    // detentor do registro (key for lab analytics)
-  anvisaCode         String?
-  ean                String?
-  therapeuticClass   String?
-  productType        String?    // CMED tipo: NEUTRO | GENÉRICO | SIMILAR | NOVO | ESPECÍFICO | BIOLÓGICO
-  pmcMax             Decimal?   @db.Decimal(12, 4) // PMC máximo (preço máximo ao consumidor, alíquota mais alta)
-  createdAt          DateTime   @default(now())
+  id               String     @id @default(uuid())
+  cmedGgrem        String?    @unique // CMED código GGREM (Anvisa regulatory ID, also row key for sync)
+  activeIngredient String
+  brandName        String
+  dosage           String // e.g. "50mg", "10mg/ml"
+  form             DosageForm
+  manufacturerName String?
+  manufacturerCnpj String? // detentor do registro (key for lab analytics)
+  anvisaCode       String?
+  ean              String?
+  therapeuticClass String?
+  productType      String? // CMED tipo: NEUTRO | GENÉRICO | SIMILAR | NOVO | ESPECÍFICO | BIOLÓGICO
+  pmcMax           Decimal?   @db.Decimal(12, 4) // PMC máximo (preço máximo ao consumidor, alíquota mais alta)
+  createdAt        DateTime   @default(now())
 
   prescriptions Prescription[]
 
+  @@unique([brandName, dosage, form, manufacturerCnpj])
   @@index([activeIngredient])
   @@index([brandName])
   @@index([pmcMax])
-  @@unique([brandName, dosage, form, manufacturerCnpj])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -247,33 +248,33 @@ enum PatientStatus {
 }
 
 model Patient {
-  id          String        @id @default(uuid())
-  pharmacyId  String
+  id                String        @id @default(uuid())
+  pharmacyId        String
   // identity (RESTRICTED — separates from clinical data for anonymization)
-  name        String
-  cpf         String?       // optional; some patients won't share
-  phone       String        // E.164, used for WhatsApp
-  birthDate   DateTime?
-  age         Int?
+  name              String
+  cpf               String? // optional; some patients won't share
+  phone             String // E.164, used for WhatsApp
+  birthDate         DateTime?
+  age               Int?
   // clinical (less sensitive in isolation; useful for cohort queries)
-  sex         String?       // M | F | O | null
-  comorbidities String[]    @default([])
-  allergies   String[]      @default([])
-  customMedications String[] @default([])
-  notes       String?
-  status      PatientStatus @default(ACTIVE)
-  consentGiven Boolean      @default(false)
-  consentDate DateTime?
-  referralCode String?      @unique // shareable code for the referral program
-  createdById String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  sex               String? // M | F | O | null
+  comorbidities     String[]      @default([])
+  allergies         String[]      @default([])
+  customMedications String[]      @default([])
+  notes             String?
+  status            PatientStatus @default(ACTIVE)
+  consentGiven      Boolean       @default(false)
+  consentDate       DateTime?
+  referralCode      String?       @unique // shareable code for the referral program
+  createdById       String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  pharmacy      Pharmacy        @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
-  createdBy     User            @relation("PatientCreatedBy", fields: [createdById], references: [id])
-  prescriptions Prescription[]
-  consents      PatientConsent[]
-  ramReports    RAMReport[]
+  pharmacy             Pharmacy              @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+  createdBy            User                  @relation("PatientCreatedBy", fields: [createdById], references: [id])
+  prescriptions        Prescription[]
+  consents             PatientConsent[]
+  ramReports           RAMReport[]
   loyalty              LoyaltyAccount?
   pointsEntries        PointsEntry[]
   missionCompletions   MissionCompletion[]
@@ -290,6 +291,7 @@ model Patient {
   dispensations        Dispensation[]
   referralsMade        Referral[]            @relation("ReferralsMade")
   referralReceived     Referral?             @relation("ReferralReceived")
+  accountLinks         PatientPharmacyLink[]
 
   @@unique([pharmacyId, phone])
   @@index([pharmacyId, status])
@@ -317,8 +319,8 @@ model Referral {
 }
 
 enum ConsentScope {
-  SERVICE        // base obrigatória — lembretes + RAM
-  ANONYMIZED_RESEARCH  // optional — uso anonimizado para pesquisa/laboratório
+  SERVICE // base obrigatória — lembretes + RAM
+  ANONYMIZED_RESEARCH // optional — uso anonimizado para pesquisa/laboratório
 }
 
 model PatientConsent {
@@ -328,7 +330,7 @@ model PatientConsent {
   granted      Boolean
   termsVersion String
   capturedAt   DateTime     @default(now())
-  source       String?      // "whatsapp" | "panel" | "qr"
+  source       String? // "whatsapp" | "panel" | "qr"
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
@@ -347,28 +349,28 @@ enum PrescriptionStatus {
 }
 
 model Prescription {
-  id              String              @id @default(uuid())
-  patientId       String
-  medicationId    String
+  id                String             @id @default(uuid())
+  patientId         String
+  medicationId      String
   // posology fields (interpreted by lib/prescriptions/posology.ts)
-  doseAmount      String              // "1 comprimido", "10 gotas"
-  intervalHours   Int?                // when fixed-interval (e.g. 8h, 12h, 24h)
-  fixedTimes      String[]            @default([])  // "HH:mm" entries; if set, overrides intervalHours
-  durationDays    Int?                // null = continuous treatment
-  instructions    String?             // "em jejum", "30min antes da refeição"
-  startDate       DateTime
-  endDate         DateTime?           // computed if durationDays set
-  quantityDispensed Int?              // number of units bought; for "remédio acabando" calc
-  prescriber      String?             // doctor name; optional
-  batchLot        String?             // lote da caixa (rastreabilidade)
-  expiryDate      DateTime?           // validade da caixa → gera "aviso" de vencimento
-  prescriptionRef String?             // referência/QR da receita digital
-  photoKey        String?             // foto da receita no Storage
-  status          PrescriptionStatus  @default(ACTIVE)
-  pausedReason    String?
-  createdById     String
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  doseAmount        String // "1 comprimido", "10 gotas"
+  intervalHours     Int? // when fixed-interval (e.g. 8h, 12h, 24h)
+  fixedTimes        String[]           @default([]) // "HH:mm" entries; if set, overrides intervalHours
+  durationDays      Int? // null = continuous treatment
+  instructions      String? // "em jejum", "30min antes da refeição"
+  startDate         DateTime
+  endDate           DateTime? // computed if durationDays set
+  quantityDispensed Int? // number of units bought; for "remédio acabando" calc
+  prescriber        String? // doctor name; optional
+  batchLot          String? // lote da caixa (rastreabilidade)
+  expiryDate        DateTime? // validade da caixa → gera "aviso" de vencimento
+  prescriptionRef   String? // referência/QR da receita digital
+  photoKey          String? // foto da receita no Storage
+  status            PrescriptionStatus @default(ACTIVE)
+  pausedReason      String?
+  createdById       String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   patient            Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
   medication         MedicationCatalog   @relation(fields: [medicationId], references: [id])
@@ -386,13 +388,13 @@ model Prescription {
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum ReminderStatus {
-  PENDING       // scheduled but not yet dispatched
-  DISPATCHED    // sent to WhatsApp
-  CONFIRMED     // patient said "Tomei"
-  DEFERRED      // patient said "Adiar"
-  REFUSED       // patient said "Não vou tomar"
-  MISSED        // window elapsed without confirmation
-  CANCELLED     // prescription paused/cancelled before dispatch
+  PENDING // scheduled but not yet dispatched
+  DISPATCHED // sent to WhatsApp
+  CONFIRMED // patient said "Tomei"
+  DEFERRED // patient said "Adiar"
+  REFUSED // patient said "Não vou tomar"
+  MISSED // window elapsed without confirmation
+  CANCELLED // prescription paused/cancelled before dispatch
 }
 
 model ReminderJob {
@@ -402,7 +404,7 @@ model ReminderJob {
   dispatchedAt   DateTime?
   respondedAt    DateTime?
   status         ReminderStatus @default(PENDING)
-  whatsappId     String?        // provider message ID
+  whatsappId     String? // provider message ID
   refusalReason  String?
   createdAt      DateTime       @default(now())
 
@@ -452,21 +454,21 @@ enum RAMStatus {
 }
 
 model RAMReport {
-  id             String       @id @default(uuid())
-  patientId      String
-  prescriptionId String?      // suspected medication; nullable for free-text reports
-  symptoms       String[]     // selected from list + free text
-  freeText       String?
-  startedAt      DateTime?
-  severity       RAMSeverity
-  outcome        String?      // "continued" | "suspended" | "other"
-  status         RAMStatus    @default(PENDING_REVIEW)
-  reviewedById   String?
-  reviewNotes    String?
+  id              String      @id @default(uuid())
+  patientId       String
+  prescriptionId  String? // suspected medication; nullable for free-text reports
+  symptoms        String[] // selected from list + free text
+  freeText        String?
+  startedAt       DateTime?
+  severity        RAMSeverity
+  outcome         String? // "continued" | "suspended" | "other"
+  status          RAMStatus   @default(PENDING_REVIEW)
+  reviewedById    String?
+  reviewNotes     String?
   vigimedProtocol String?
-  forwardedAt    DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  forwardedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   prescription Prescription? @relation(fields: [prescriptionId], references: [id])
@@ -481,14 +483,14 @@ model RAMReport {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model BotConversation {
-  id          String   @id @default(uuid())
-  pharmacyId  String
-  patientId   String?  // null until consent is captured
-  phone       String   // E.164, key for inbound routing
-  state       String   @default("idle") // idle | awaiting_consent | ram_intake_* | etc
-  context     Json     @default("{}")
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  pharmacyId String
+  patientId  String? // null until consent is captured
+  phone      String // E.164, key for inbound routing
+  state      String   @default("idle") // idle | awaiting_consent | ram_intake_* | etc
+  context    Json     @default("{}")
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
 
   @@unique([phone])
   @@index([state])
@@ -501,27 +503,27 @@ model BotConversation {
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum ReturnStatus {
-  SCHEDULED      // expected but not yet asked
-  ASKED          // patient was contacted, awaiting response
+  SCHEDULED // expected but not yet asked
+  ASKED // patient was contacted, awaiting response
   RESTOCKED_HERE // patient said they bought again at this pharmacy
   RESTOCKED_AWAY // patient said they bought at another pharmacy
-  STOPPING       // patient said they're stopping the treatment
-  EXPIRED        // asked but never responded within window
-  CANCELLED      // prescription cancelled before resolution
+  STOPPING // patient said they're stopping the treatment
+  EXPIRED // asked but never responded within window
+  CANCELLED // prescription cancelled before resolution
 }
 
 model ReturnExpectation {
-  id             String        @id @default(uuid())
+  id             String       @id @default(uuid())
   prescriptionId String
-  expectedAt     DateTime      // estimated stock end date
-  graceDays      Int           @default(2)  // days after expectedAt before asking
-  status         ReturnStatus  @default(SCHEDULED)
+  expectedAt     DateTime // estimated stock end date
+  graceDays      Int          @default(2) // days after expectedAt before asking
+  status         ReturnStatus @default(SCHEDULED)
   askedAt        DateTime?
   respondedAt    DateTime?
-  whatsappId     String?       // provider message id
-  notes          String?       // free-text response if patient picks "outro"
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  whatsappId     String? // provider message id
+  notes          String? // free-text response if patient picks "outro"
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
 
@@ -543,8 +545,8 @@ enum LoyaltyTier {
 model LoyaltyAccount {
   id          String      @id @default(uuid())
   patientId   String      @unique
-  points      Int         @default(0)      // current redeemable balance
-  lifetime    Int         @default(0)      // total ever earned (drives tier)
+  points      Int         @default(0) // current redeemable balance
+  lifetime    Int         @default(0) // total ever earned (drives tier)
   tier        LoyaltyTier @default(BRONZE)
   streakDays  Int         @default(0)
   lastActueAt DateTime?
@@ -556,17 +558,17 @@ model LoyaltyAccount {
 
 // Append-only ledger of every point movement (audit + idempotency).
 model PointsEntry {
-  id         String   @id @default(uuid())
-  patientId  String
-  delta      Int
-  reason     String                 // "mission", "affiliate_conversion", "redemption", "adherence"
-  refType    String?
-  refId      String?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  patientId String
+  delta     Int
+  reason    String // "mission", "affiliate_conversion", "redemption", "adherence"
+  refType   String?
+  refId     String?
+  createdAt DateTime @default(now())
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
-  @@unique([reason, refType, refId])   // idempotent awarding
+  @@unique([reason, refType, refId]) // idempotent awarding
   @@index([patientId, createdAt])
 }
 
@@ -620,7 +622,7 @@ model Reward {
   description String
   costPoints  Int
   kind        RewardKind @default(DISCOUNT)
-  stock       Int?       // null = unlimited
+  stock       Int? // null = unlimited
   active      Boolean    @default(true)
   createdAt   DateTime   @default(now())
 
@@ -639,7 +641,7 @@ model Redemption {
   rewardId   String
   costPoints Int
   status     RedemptionStatus @default(PENDING)
-  voucher    String?          // generated code
+  voucher    String? // generated code
   createdAt  DateTime         @default(now())
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
@@ -654,13 +656,13 @@ model Redemption {
 
 model AffiliatePartner {
   id            String   @id @default(uuid())
-  slug          String   @unique          // "drogasil"
+  slug          String   @unique // "drogasil"
   name          String
-  baseUrl       String                    // https://www.drogasil.com.br
+  baseUrl       String // https://www.drogasil.com.br
   utmSource     String   @default("meuprontuario")
   utmMedium     String   @default("affiliate")
-  commissionPct Float    @default(0)       // % of order value
-  pointsPerReal Float    @default(1)       // loyalty points per R$ converted
+  commissionPct Float    @default(0) // % of order value
+  pointsPerReal Float    @default(1) // loyalty points per R$ converted
   logo          String?
   color         String?
   active        Boolean  @default(true)
@@ -672,10 +674,10 @@ model AffiliatePartner {
 
 model AffiliateLink {
   id         String   @id @default(uuid())
-  code       String   @unique               // short code used in /go/[code]
+  code       String   @unique // short code used in /go/[code]
   partnerId  String
-  patientId  String?                         // attributed patient (nullable for generic)
-  targetPath String   @default("/")          // path appended to partner baseUrl
+  patientId  String? // attributed patient (nullable for generic)
+  targetPath String   @default("/") // path appended to partner baseUrl
   campaign   String?
   createdAt  DateTime @default(now())
 
@@ -690,7 +692,7 @@ model AffiliateClick {
   id        String   @id @default(uuid())
   linkId    String
   patientId String?
-  clickRef  String   @unique                 // our fbclid-style tracking id
+  clickRef  String   @unique // our fbclid-style tracking id
   userAgent String?
   referer   String?
   createdAt DateTime @default(now())
@@ -713,7 +715,7 @@ model AffiliateConversion {
   partnerId       String
   patientId       String?
   clickId         String?
-  externalOrderId String                       // partner's order id (idempotency)
+  externalOrderId String // partner's order id (idempotency)
   amountCents     Int              @default(0)
   commissionCents Int              @default(0)
   pointsAwarded   Int              @default(0)
@@ -737,8 +739,8 @@ model ApiKey {
   id         String    @id @default(uuid())
   pharmacyId String
   name       String
-  prefix     String    @unique               // public id shown in UI (e.g. "pk_live_ab12")
-  hash       String                           // sha-256 of the full secret
+  prefix     String    @unique // public id shown in UI (e.g. "pk_live_ab12")
+  hash       String // sha-256 of the full secret
   scopes     String[]  @default([])
   lastUsedAt DateTime?
   revokedAt  DateTime?
@@ -753,8 +755,8 @@ model WebhookEndpoint {
   id         String   @id @default(uuid())
   pharmacyId String
   url        String
-  secret     String                          // HMAC signing secret
-  events     String[] @default([])           // ["ram.created","return.due","order.created"]
+  secret     String // HMAC signing secret
+  events     String[] @default([]) // ["ram.created","return.due","order.created"]
   active     Boolean  @default(true)
   createdAt  DateTime @default(now())
 
@@ -771,16 +773,16 @@ enum WebhookDeliveryStatus {
 }
 
 model WebhookDelivery {
-  id          String                @id @default(uuid())
-  endpointId  String
-  event       String
-  payload     Json
-  status      WebhookDeliveryStatus @default(PENDING)
-  attempts    Int                   @default(0)
+  id           String                @id @default(uuid())
+  endpointId   String
+  event        String
+  payload      Json
+  status       WebhookDeliveryStatus @default(PENDING)
+  attempts     Int                   @default(0)
   responseCode Int?
-  lastError   String?
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+  lastError    String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
 
   endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
 
@@ -806,26 +808,26 @@ enum WearableProvider {
 }
 
 enum WearableConnStatus {
-  PENDING      // awaiting OAuth callback or first ingest
+  PENDING // awaiting OAuth callback or first ingest
   CONNECTED
   ERROR
   REVOKED
 }
 
 model WearableConnection {
-  id             String             @id @default(uuid())
-  patientId      String
-  provider       WearableProvider
-  status         WearableConnStatus @default(PENDING)
-  externalUserId String?            // provider's user id
-  accessToken    String?            // OAuth (encrypt at rest in prod via DB/KMS)
-  refreshToken   String?
-  expiresAt      DateTime?
-  scopes         String[]           @default([])
-  ingestTokenHash String?           // sha-256 of the push token (Apple/Samsung/SDK)
-  lastSyncAt     DateTime?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  id              String             @id @default(uuid())
+  patientId       String
+  provider        WearableProvider
+  status          WearableConnStatus @default(PENDING)
+  externalUserId  String? // provider's user id
+  accessToken     String? // OAuth (encrypt at rest in prod via DB/KMS)
+  refreshToken    String?
+  expiresAt       DateTime?
+  scopes          String[]           @default([])
+  ingestTokenHash String? // sha-256 of the push token (Apple/Samsung/SDK)
+  lastSyncAt      DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
@@ -856,8 +858,8 @@ model WearableSample {
   value      Float
   unit       String
   recordedAt DateTime
-  source     String?          // device label e.g. "Apple Watch Series 9"
-  externalId String?          // provider sample id (idempotency)
+  source     String? // device label e.g. "Apple Watch Series 9"
+  externalId String? // provider sample id (idempotency)
   createdAt  DateTime         @default(now())
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
@@ -872,8 +874,8 @@ model WearableSample {
 
 model PatientLoginCode {
   id         String    @id @default(uuid())
-  phone      String    // E.164
-  codeHash   String    // sha-256 of the 6-digit code
+  phone      String // E.164
+  codeHash   String // sha-256 of the 6-digit code
   expiresAt  DateTime
   attempts   Int       @default(0)
   consumedAt DateTime?
@@ -887,7 +889,7 @@ model PatientLoginCode {
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum ExamStatus {
-  PENDING   // upload started, file not confirmed yet
+  PENDING // upload started, file not confirmed yet
   READY
   ARCHIVED
 }
@@ -895,15 +897,15 @@ enum ExamStatus {
 model Exam {
   id         String     @id @default(uuid())
   patientId  String
-  pharmacyId String     // denormalized for tenant scoping/indexing
+  pharmacyId String // denormalized for tenant scoping/indexing
   title      String
-  category   String?    // "Laboratorial" | "Imagem" | "Receita" | ...
-  fileKey    String     // storage object path within the bucket
+  category   String? // "Laboratorial" | "Imagem" | "Receita" | ...
+  fileKey    String // storage object path within the bucket
   fileName   String
   mimeType   String
   sizeBytes  Int        @default(0)
   status     ExamStatus @default(READY)
-  uploadedBy String?    // userId (staff) or "patient"
+  uploadedBy String? // userId (staff) or "patient"
   notes      String?
   createdAt  DateTime   @default(now())
 
@@ -928,8 +930,8 @@ model PatientMessage {
   pharmacyId String
   direction  MessageDirection
   body       String
-  authorName String?          // staff display name when FROM_PHARMACY
-  readAt     DateTime?        // read by the *other* side
+  authorName String? // staff display name when FROM_PHARMACY
+  readAt     DateTime? // read by the *other* side
   createdAt  DateTime         @default(now())
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
@@ -958,21 +960,21 @@ enum AppointmentStatus {
 }
 
 model Appointment {
-  id           String            @id @default(uuid())
-  patientId    String
-  pharmacyId   String
-  title        String
-  kind         AppointmentKind   @default(CONSULTATION)
-  scheduledAt  DateTime
-  durationMin  Int               @default(30)
-  location     String?
-  professional String?
-  status       AppointmentStatus @default(SCHEDULED)
-  notes        String?
-  createdBy    String?
-  reminderSentAt DateTime?       // automação: lembrete 24h enviado
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id             String            @id @default(uuid())
+  patientId      String
+  pharmacyId     String
+  title          String
+  kind           AppointmentKind   @default(CONSULTATION)
+  scheduledAt    DateTime
+  durationMin    Int               @default(30)
+  location       String?
+  professional   String?
+  status         AppointmentStatus @default(SCHEDULED)
+  notes          String?
+  createdBy      String?
+  reminderSentAt DateTime? // automação: lembrete 24h enviado
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
@@ -988,7 +990,7 @@ model Receipt {
   id            String   @id @default(uuid())
   patientId     String
   pharmacyId    String
-  accessKey     String   @unique   // 44-digit NF-e/NFC-e chave de acesso
+  accessKey     String   @unique // 44-digit NF-e/NFC-e chave de acesso
   rawUrl        String?
   amountCents   Int?
   pointsAwarded Int      @default(0)
@@ -1006,23 +1008,23 @@ model Receipt {
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum PrescriptionSignature {
-  UNSIGNED        // no digital signature detected
+  UNSIGNED // no digital signature detected
   SIGNED_DETECTED // a PKCS#7/PAdES signature is present (chain not yet verified)
-  VERIFIED_ICP    // validated against the ICP-Brasil chain (requires creds)
+  VERIFIED_ICP // validated against the ICP-Brasil chain (requires creds)
   INVALID
 }
 
 enum RxStatus {
-  SUBMITTED  // uploaded by patient
-  LEAD       // signature detected → offered to the pharmacy
+  SUBMITTED // uploaded by patient
+  LEAD // signature detected → offered to the pharmacy
   DISPENSED
   EXPIRED
   REJECTED
 }
 
 enum SngpcStatus {
-  NA       // not a controlled drug
-  PENDING  // queued for SNGPC transmission
+  NA // not a controlled drug
+  PENDING // queued for SNGPC transmission
   SENT
   FAILED
 }
@@ -1057,11 +1059,11 @@ model Dispensation {
   patientId      String
   pharmacyId     String
   medication     String
-  batchLot       String?     // lote (rastreabilidade)
+  batchLot       String? // lote (rastreabilidade)
   quantity       Int         @default(1)
-  nfeAccessKey   String?     // nota fiscal vinculada
-  crm            String?     // prescritor
-  dispensedBy    String?     // userId
+  nfeAccessKey   String? // nota fiscal vinculada
+  crm            String? // prescritor
+  dispensedBy    String? // userId
   sngpcStatus    SngpcStatus @default(NA)
   createdAt      DateTime    @default(now())
 
@@ -1070,4 +1072,80 @@ model Dispensation {
 
   @@index([pharmacyId, createdAt])
   @@index([patientId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Meu Prontuário — patient-owned identity (Phase 1 of the PRD).
+// Additive & non-breaking: the legacy pharmacy-scoped `Patient` stays as-is.
+// A PatientAccount is the sovereign owner of the patient's data; it links to
+// many pharmacies (opt-in, consent-scoped) via PatientPharmacyLink, which also
+// bridges to the legacy Patient row of that pharmacy. Auth tokens for the native
+// apps are tracked per-device with rotating refresh tokens.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PatientAccount {
+  id        String    @id @default(uuid())
+  phone     String    @unique // E.164 — identidade primária (OTP)
+  email     String?   @unique
+  name      String
+  cpf       String?   @unique
+  birthDate DateTime?
+  sex       String? // M | F | O
+  appleSub  String?   @unique // Sign in with Apple
+  googleSub String?   @unique // Google Sign-In
+  status    String    @default("ACTIVE") // ACTIVE | SUSPENDED | DELETED
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  links         PatientPharmacyLink[]
+  devices       PatientDevice[]
+  refreshTokens PatientRefreshToken[]
+
+  @@index([email])
+}
+
+model PatientPharmacyLink {
+  id         String    @id @default(uuid())
+  accountId  String
+  pharmacyId String
+  patientId  String? // ponte p/ o Patient legado daquela farmácia
+  status     String    @default("ACTIVE") // PENDING | ACTIVE | REVOKED
+  scopes     String[]  @default([]) // reaproveita ConsentScope
+  linkedAt   DateTime  @default(now())
+  revokedAt  DateTime?
+
+  account  PatientAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  pharmacy Pharmacy       @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+  patient  Patient?       @relation(fields: [patientId], references: [id], onDelete: SetNull)
+
+  @@unique([accountId, pharmacyId])
+  @@index([pharmacyId, status])
+  @@index([patientId])
+}
+
+model PatientDevice {
+  id         String   @id @default(uuid())
+  accountId  String
+  platform   String // ios | android | web
+  pushToken  String? // APNs/FCM token
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  account PatientAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}
+
+model PatientRefreshToken {
+  id        String    @id @default(uuid())
+  accountId String
+  tokenHash String    @unique
+  deviceId  String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  account PatientAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
