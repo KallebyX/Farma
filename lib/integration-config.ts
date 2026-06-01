@@ -29,7 +29,10 @@ export async function getIntegrationConfig(): Promise<IntegrationConfig> {
     cache = { at: Date.now(), cfg };
     return cfg;
   } catch {
-    return cache?.cfg ?? {};
+    // Cache the fallback (last good, or empty) so a transient/missing-table
+    // error doesn't re-query the DB on every send.
+    cache = { at: Date.now(), cfg: cache?.cfg ?? {} };
+    return cache.cfg;
   }
 }
 
