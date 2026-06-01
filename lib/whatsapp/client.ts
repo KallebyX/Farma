@@ -1,6 +1,12 @@
 /**
- * WhatsApp client. Wraps Z-API (default) or Meta Cloud API. Falls back to a
- * mock that just logs when credentials are missing — useful for dev/E2E.
+ * WhatsApp client. Wraps Z-API (default) or Meta Cloud API or Twilio. Falls back
+ * to a mock that just logs when credentials are missing — useful for dev/E2E.
+ *
+ * Business-initiated WhatsApp (Twilio) requires an approved Content template.
+ * Each outbound message may carry a `template` hint (a logical key like "otp"
+ * or "reminder"); the Twilio path resolves that key to an approved ContentSid
+ * via the DB config (IntegrationConfig.twilioTemplates) so the right WhatsApp
+ * template category is used per message type (e.g. authentication vs utility).
  */
 
 export type WhatsAppButton = {
@@ -8,10 +14,28 @@ export type WhatsAppButton = {
   label: string;
 };
 
+/** Logical template categories. Each maps to an approved Twilio ContentSid in config. */
+export type TemplateKey =
+  | "otp"
+  | "welcome"
+  | "reminder"
+  | "return"
+  | "appointment"
+  | "appointment_reminder"
+  | "generic";
+
+export type TemplateHint = {
+  key: TemplateKey;
+  /** Optional explicit ContentVariables. When omitted, the rendered text is sent as {{1}}. */
+  variables?: Record<string, string>;
+};
+
+type Base = { phone: string; template?: TemplateHint };
+
 export type WhatsAppOutbound =
-  | { kind: "text"; phone: string; text: string }
-  | { kind: "buttons"; phone: string; text: string; buttons: WhatsAppButton[] }
-  | { kind: "list"; phone: string; text: string; sectionTitle: string; items: { id: string; label: string; description?: string }[] };
+  | (Base & { kind: "text"; text: string })
+  | (Base & { kind: "buttons"; text: string; buttons: WhatsAppButton[] })
+  | (Base & { kind: "list"; text: string; sectionTitle: string; items: { id: string; label: string; description?: string }[] });
 
 export type WhatsAppSendResult = {
   status: "SENT" | "FAILED" | "MOCK";
@@ -19,7 +43,7 @@ export type WhatsAppSendResult = {
   error?: string;
 };
 
-import { getIntegrationConfig } from "@/lib/integration-config";
+import { getIntegrationConfig, resolveTemplateSid } from "@/lib/integration-config";
 
 const ENV_PROVIDER = process.env.WHATSAPP_PROVIDER ?? "zapi"; // "zapi" | "meta" | "twilio" | "mock"
 const API_KEY = process.env.WHATSAPP_API_KEY;
@@ -36,16 +60,55 @@ function digits(phone: string): string {
   return phone.replace(/\D/g, "");
 }
 
-/** Flattens any outbound message to plain text (Twilio session messages). */
-function asText(msg: WhatsAppOutbound): string {
+/** Flattens any outbound message to plain text (Twilio session messages / template {{1}}). */
+export function asText(msg: WhatsAppOutbound): string {
   if (msg.kind === "buttons") return `${msg.text}\n${msg.buttons.map((b) => `• ${b.label}`).join("\n")}`;
   if (msg.kind === "list") return `${msg.text}\n${msg.items.map((i) => `• ${i.label}`).join("\n")}`;
   return msg.text;
 }
 
-async function sendViaTwilio(msg: WhatsAppOutbound, sid: string, token: string, fromRaw: string): Promise<WhatsAppSendResult> {
-  const from = fromRaw.startsWith("whatsapp:") ? fromRaw : `whatsapp:${fromRaw}`;
-  const body = new URLSearchParams({ From: from, To: `whatsapp:+${digits(msg.phone)}`, Body: asText(msg) });
+export type TwilioFormOpts = {
+  from?: string | null;
+  messagingServiceSid?: string | null;
+  /** Generic fallback template (used when the message has no keyed template). */
+  contentSid?: string | null;
+  /** Already-resolved ContentSid for this message's template key (takes precedence). */
+  templateSid?: string | null;
+};
+
+/**
+ * Pure helper: builds the Twilio Messages API form body for a WhatsApp send.
+ * Kept side-effect free so the From/MessagingService and template/Body branching
+ * can be unit-tested without Twilio credentials.
+ */
+export function buildTwilioForm(msg: WhatsAppOutbound, opts: TwilioFormOpts): URLSearchParams {
+  const body = new URLSearchParams();
+  body.set("To", `whatsapp:+${digits(msg.phone)}`);
+  // Prefer a Messaging Service (carries the approved WhatsApp sender); else a From number.
+  if (opts.messagingServiceSid) body.set("MessagingServiceSid", opts.messagingServiceSid);
+  else if (opts.from) body.set("From", opts.from.startsWith("whatsapp:") ? opts.from : `whatsapp:${opts.from}`);
+
+  // A keyed template SID wins over the generic one. Both are business-initiated.
+  const sid = opts.templateSid || opts.contentSid;
+  if (sid) {
+    body.set("ContentSid", sid);
+    const explicit = msg.template?.variables;
+    const vars = explicit && Object.keys(explicit).length > 0 ? explicit : { "1": asText(msg).slice(0, 1000) };
+    body.set("ContentVariables", JSON.stringify(vars));
+  } else {
+    // No template configured: plain Body (works only inside the 24h session window / sandbox).
+    body.set("Body", asText(msg));
+  }
+  return body;
+}
+
+async function sendViaTwilio(
+  msg: WhatsAppOutbound,
+  sid: string,
+  token: string,
+  opts: TwilioFormOpts,
+): Promise<WhatsAppSendResult> {
+  const body = buildTwilioForm(msg, opts);
   try {
     const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
       method: "POST",
@@ -76,8 +139,12 @@ export async function sendWhatsApp(msg: WhatsAppOutbound): Promise<WhatsAppSendR
     const sid = cfg.twilioAccountSid ?? process.env.TWILIO_ACCOUNT_SID;
     const token = cfg.twilioAuthToken ?? process.env.TWILIO_AUTH_TOKEN;
     const from = cfg.twilioWhatsappFrom ?? process.env.TWILIO_WHATSAPP_FROM;
-    if (!sid || !token || !from) return mockLog("text", msg.phone, asText(msg));
-    return sendViaTwilio(msg, sid, token, from);
+    const messagingServiceSid = cfg.twilioMessagingServiceSid ?? process.env.TWILIO_MESSAGING_SERVICE_SID;
+    const contentSid = cfg.twilioContentSid ?? process.env.TWILIO_CONTENT_SID;
+    if (!sid || !token || (!from && !messagingServiceSid)) return mockLog("text", msg.phone, asText(msg));
+    // Resolve the message's keyed template (e.g. "otp" → authentication template SID).
+    const templateSid = msg.template ? resolveTemplateSid(cfg, msg.template.key) : null;
+    return sendViaTwilio(msg, sid, token, { from, messagingServiceSid, contentSid, templateSid });
   }
 
   const isMock = provider === "mock" || !API_KEY || !INSTANCE_ID;

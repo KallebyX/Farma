@@ -39,7 +39,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: result.status });
 
     const when = result.appointment.scheduledAt.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-    sendWhatsApp({ kind: "text", phone: patient.phone, text: `📅 *${result.appointment.title}* agendado para *${when}*. Em caso de dúvidas, responda aqui.` }).catch(() => {});
+    sendWhatsApp({ kind: "text", phone: patient.phone, text: `📅 *${result.appointment.title}* agendado para *${when}*. Em caso de dúvidas, responda aqui.`, template: { key: "appointment" } }).catch(() => {});
 
     return NextResponse.json({ ok: true, appointment: result.appointment }, { status: 201 });
   } catch (err) {

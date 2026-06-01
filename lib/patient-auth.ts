@@ -35,6 +35,7 @@ export async function requestPatientCode(phone: string): Promise<{ sent: boolean
     kind: "text",
     phone,
     text: `🔐 Seu código de acesso ao *Meu Prontuário* é *${code}*.\nVálido por 10 minutos. Não compartilhe.`,
+    template: { key: "otp" },
   });
   return { sent: true };
 }
