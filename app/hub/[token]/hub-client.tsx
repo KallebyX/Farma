@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import jsQR from "jsqr";
 
 type Account = { points: number; lifetime: number; tier: string; streakDays: number };
 type Mission = { code: string; title: string; description: string; points: number; icon: string | null; completed: boolean };
@@ -506,6 +507,7 @@ function ReceiptScanHubSection({ token, onFlash }: { token: string; onFlash: (m:
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -533,21 +535,38 @@ function ReceiptScanHubSection({ token, onFlash }: { token: string; onFlash: (m:
   }
 
   async function startScan() {
+    if (!navigator.mediaDevices?.getUserMedia) { onFlash("Câmera indisponível — cole a chave abaixo"); return; }
+    // Native BarcodeDetector (Chrome/Android) when present; else jsQR fallback (Safari/iOS).
     const Ctor = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector;
-    if (!Ctor || !navigator.mediaDevices?.getUserMedia) { onFlash("Câmera indisponível — cole a chave abaixo"); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       streamRef.current = stream;
       setScanning(true);
-      const detector = new Ctor({ formats: ["qr_code"] });
+      const detector = Ctor ? new Ctor({ formats: ["qr_code"] }) : null;
       const video = videoRef.current!;
       video.srcObject = stream;
       await video.play();
+
       const tick = async () => {
         if (!streamRef.current || !videoRef.current) return;
+        const video = videoRef.current;
         try {
-          const codes = await detector.detect(videoRef.current);
-          if (codes[0]?.rawValue) { const v = codes[0].rawValue; stopScan(); submit(v); return; }
+          if (detector) {
+            const codes = await detector.detect(video);
+            if (codes[0]?.rawValue) { const v = codes[0].rawValue; stopScan(); submit(v); return; }
+          } else if (video.readyState >= 2 && video.videoWidth > 0) {
+            // jsQR fallback: draw the current frame to a canvas and decode.
+            const canvas = canvasRef.current ?? document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext("2d", { willReadFrequently: true });
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const found = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
+              if (found?.data) { const v = found.data; stopScan(); submit(v); return; }
+            }
+          }
         } catch { /* keep trying */ }
         rafRef.current = requestAnimationFrame(tick);
       };
@@ -560,6 +579,7 @@ function ReceiptScanHubSection({ token, onFlash }: { token: string; onFlash: (m:
       {scanning ? (
         <div className="rounded-xl overflow-hidden border border-emerald-400/40">
           <video ref={videoRef} className="w-full bg-black" muted playsInline />
+          <canvas ref={canvasRef} className="hidden" />
           <button onClick={stopScan} className="w-full bg-white/10 text-white text-sm py-2">Cancelar</button>
         </div>
       ) : (
