@@ -99,7 +99,8 @@ model IntegrationConfig {
   twilioAccountSid   String?
   twilioAuthToken    String?
   twilioWhatsappFrom String?
-  twilioContentSid   String?  // optional approved template for proactive msgs
+  twilioMessagingServiceSid String? // MG… (usa o WhatsApp sender do serviço)
+  twilioContentSid   String?  // template aprovado p/ msgs proativas (business-initiated)
   emailProvider      String?  // "resend" | ...
   resendApiKey       String?
   emailFrom          String?

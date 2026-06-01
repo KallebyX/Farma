@@ -43,9 +43,23 @@ function asText(msg: WhatsAppOutbound): string {
   return msg.text;
 }
 
-async function sendViaTwilio(msg: WhatsAppOutbound, sid: string, token: string, fromRaw: string): Promise<WhatsAppSendResult> {
-  const from = fromRaw.startsWith("whatsapp:") ? fromRaw : `whatsapp:${fromRaw}`;
-  const body = new URLSearchParams({ From: from, To: `whatsapp:+${digits(msg.phone)}`, Body: asText(msg) });
+type TwilioOpts = { from?: string | null; messagingServiceSid?: string | null; contentSid?: string | null };
+
+async function sendViaTwilio(msg: WhatsAppOutbound, sid: string, token: string, opts: TwilioOpts): Promise<WhatsAppSendResult> {
+  const body = new URLSearchParams();
+  body.set("To", `whatsapp:+${digits(msg.phone)}`);
+  // Prefer a Messaging Service (carries the approved WhatsApp sender); else a From number.
+  if (opts.messagingServiceSid) body.set("MessagingServiceSid", opts.messagingServiceSid);
+  else if (opts.from) body.set("From", opts.from.startsWith("whatsapp:") ? opts.from : `whatsapp:${opts.from}`);
+  // Business-initiated WhatsApp requires an approved Content template; pass the
+  // message text as variable {{1}}. Without a template we send plain Body
+  // (works only inside the 24h session window / sandbox).
+  if (opts.contentSid) {
+    body.set("ContentSid", opts.contentSid);
+    body.set("ContentVariables", JSON.stringify({ "1": asText(msg).slice(0, 1000) }));
+  } else {
+    body.set("Body", asText(msg));
+  }
   try {
     const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
       method: "POST",
@@ -76,8 +90,10 @@ export async function sendWhatsApp(msg: WhatsAppOutbound): Promise<WhatsAppSendR
     const sid = cfg.twilioAccountSid ?? process.env.TWILIO_ACCOUNT_SID;
     const token = cfg.twilioAuthToken ?? process.env.TWILIO_AUTH_TOKEN;
     const from = cfg.twilioWhatsappFrom ?? process.env.TWILIO_WHATSAPP_FROM;
-    if (!sid || !token || !from) return mockLog("text", msg.phone, asText(msg));
-    return sendViaTwilio(msg, sid, token, from);
+    const messagingServiceSid = cfg.twilioMessagingServiceSid ?? process.env.TWILIO_MESSAGING_SERVICE_SID;
+    const contentSid = cfg.twilioContentSid ?? process.env.TWILIO_CONTENT_SID;
+    if (!sid || !token || (!from && !messagingServiceSid)) return mockLog("text", msg.phone, asText(msg));
+    return sendViaTwilio(msg, sid, token, { from, messagingServiceSid, contentSid });
   }
 
   const isMock = provider === "mock" || !API_KEY || !INSTANCE_ID;

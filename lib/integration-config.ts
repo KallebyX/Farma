@@ -12,6 +12,7 @@ export type IntegrationConfig = {
   twilioAccountSid?: string | null;
   twilioAuthToken?: string | null;
   twilioWhatsappFrom?: string | null;
+  twilioMessagingServiceSid?: string | null;
   twilioContentSid?: string | null;
   emailProvider?: string | null;
   resendApiKey?: string | null;
