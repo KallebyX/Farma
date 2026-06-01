@@ -19,15 +19,12 @@ export type WhatsAppSendResult = {
   error?: string;
 };
 
-const PROVIDER = process.env.WHATSAPP_PROVIDER ?? "zapi"; // "zapi" | "meta" | "twilio" | "mock"
+import { getIntegrationConfig } from "@/lib/integration-config";
+
+const ENV_PROVIDER = process.env.WHATSAPP_PROVIDER ?? "zapi"; // "zapi" | "meta" | "twilio" | "mock"
 const API_KEY = process.env.WHATSAPP_API_KEY;
 const INSTANCE_ID = process.env.WHATSAPP_INSTANCE_ID;
 const BASE_URL = process.env.WHATSAPP_API_BASE_URL ?? "https://api.z-api.io";
-
-// Twilio (WhatsApp) — set WHATSAPP_PROVIDER=twilio + these.
-const TWILIO_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_FROM = process.env.TWILIO_WHATSAPP_FROM; // e.g. "whatsapp:+14155238886"
 
 function mockLog(kind: string, phone: string, text: string): WhatsAppSendResult {
   // eslint-disable-next-line no-console
@@ -46,15 +43,15 @@ function asText(msg: WhatsAppOutbound): string {
   return msg.text;
 }
 
-async function sendViaTwilio(msg: WhatsAppOutbound): Promise<WhatsAppSendResult> {
-  const from = TWILIO_FROM!.startsWith("whatsapp:") ? TWILIO_FROM! : `whatsapp:${TWILIO_FROM}`;
+async function sendViaTwilio(msg: WhatsAppOutbound, sid: string, token: string, fromRaw: string): Promise<WhatsAppSendResult> {
+  const from = fromRaw.startsWith("whatsapp:") ? fromRaw : `whatsapp:${fromRaw}`;
   const body = new URLSearchParams({ From: from, To: `whatsapp:+${digits(msg.phone)}`, Body: asText(msg) });
   try {
-    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`, {
+    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: "Basic " + Buffer.from(`${TWILIO_SID}:${TWILIO_TOKEN}`).toString("base64"),
+        Authorization: "Basic " + Buffer.from(`${sid}:${token}`).toString("base64"),
       },
       body,
       signal: AbortSignal.timeout(10000),
@@ -71,12 +68,19 @@ async function sendViaTwilio(msg: WhatsAppOutbound): Promise<WhatsAppSendResult>
 }
 
 export async function sendWhatsApp(msg: WhatsAppOutbound): Promise<WhatsAppSendResult> {
-  if (PROVIDER === "twilio") {
-    if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) return mockLog("text", msg.phone, asText(msg));
-    return sendViaTwilio(msg);
+  // DB config (set via MCP) overrides env — lets us activate without Vercel env.
+  const cfg = await getIntegrationConfig();
+  const provider = cfg.whatsappProvider ?? ENV_PROVIDER;
+
+  if (provider === "twilio") {
+    const sid = cfg.twilioAccountSid ?? process.env.TWILIO_ACCOUNT_SID;
+    const token = cfg.twilioAuthToken ?? process.env.TWILIO_AUTH_TOKEN;
+    const from = cfg.twilioWhatsappFrom ?? process.env.TWILIO_WHATSAPP_FROM;
+    if (!sid || !token || !from) return mockLog("text", msg.phone, asText(msg));
+    return sendViaTwilio(msg, sid, token, from);
   }
 
-  const isMock = PROVIDER === "mock" || !API_KEY || !INSTANCE_ID;
+  const isMock = provider === "mock" || !API_KEY || !INSTANCE_ID;
 
   if (isMock) {
     if (msg.kind === "buttons") {
