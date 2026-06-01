@@ -35,7 +35,10 @@ export async function requestPatientCode(phone: string): Promise<{ sent: boolean
     kind: "text",
     phone,
     text: `🔐 Seu código de acesso ao *Meu Prontuário* é *${code}*.\nVálido por 10 minutos. Não compartilhe.`,
-    template: { key: "otp" },
+    // WhatsApp authentication templates take ONLY the code as {{1}} (e.g.
+    // "{{1}} is your verification code"). The plain `text` above is the fallback
+    // for non-template providers (Z-API/mock) and the 24h-session Body path.
+    template: { key: "otp", variables: { "1": code } },
   });
   // Observability: the OTP is the patient's only way in — log the outcome so a
   // delivery failure (provider/template) is visible in prod logs.
