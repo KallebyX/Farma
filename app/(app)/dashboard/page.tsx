@@ -52,9 +52,14 @@ export default async function DashboardPage() {
 
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <NavCard href="/patients" title="Pacientes" desc="Cadastro, lembretes e histórico de adesão." icon={<Icon.Users size={20}/>}/>
+        <NavCard href="/receitas" title="Receitas digitais" desc="Receitas enviadas (qualificadas/ICP e comuns) e dispensação rastreável." icon={<Icon.Pill size={20}/>}/>
         <NavCard href="/returns" title="Retornos esperados" desc="Resgate de pacientes cujo estoque está acabando." icon={<Icon.Cart size={20}/>}/>
         <NavCard href="/ram" title="Inbox de RAM" desc="Reações adversas reportadas pelos pacientes." icon={<Icon.Alert size={20}/>}/>
+        <NavCard href="/afiliados" title="Laboratórios" desc="Parcerias (Eurofarma, Cimed…), cliques, conversões e comissão." icon={<Icon.TrendUp size={20}/>}/>
+        <NavCard href="/engajamento" title="Gamificação" desc="Missões, recompensas e níveis do programa de fidelidade." icon={<Icon.Heart size={20}/>}/>
         <NavCard href="/catalog" title="Catálogo" desc="Base de medicamentos usada nas prescrições." icon={<Icon.Book size={20}/>}/>
+        <NavCard href="/integracoes" title="Integrações" desc="Chaves de API e webhooks para conectar seu sistema." icon={<Icon.Link size={20}/>}/>
+        <NavCard href="/configuracoes" title="Configurações" desc="Localização/rede, catálogo e programa de indicação." icon={<Icon.Settings size={20}/>}/>
         <NavCard href="/settings/team" title="Equipe" desc={`${memberCount} membro${memberCount !== 1 ? "s" : ""}${pendingInvites > 0 ? ` · ${pendingInvites} convite${pendingInvites !== 1 ? "s" : ""} pendente${pendingInvites !== 1 ? "s" : ""}` : ""}`} icon={<Icon.Settings size={20}/>}/>
       </div>
     </PageShell>
