@@ -17,6 +17,10 @@ const optional = z.string().optional();
 export const envSchema = z.object({
   DATABASE_URL: required,
   DIRECT_URL: required,
+  // Optional least-privilege (farma_app) connection that activates RLS
+  // enforcement for tenant-scoped queries. When absent, the app uses the
+  // privileged connection and relies on app-layer tenant scoping.
+  DATABASE_URL_APP: optional,
   NEXTAUTH_SECRET: required.refine((v) => v.length >= 32, {
     message: "deve ter pelo menos 32 caracteres",
   }),
@@ -36,6 +40,7 @@ export const envSchema = z.object({
   WHATSAPP_WEBHOOK_SECRET: optional,
   UPSTASH_REDIS_REST_URL: optional,
   UPSTASH_REDIS_REST_TOKEN: optional,
+  CMED_URL: optional,
 });
 
 export type Env = z.infer<typeof envSchema>;

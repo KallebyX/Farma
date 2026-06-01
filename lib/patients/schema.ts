@@ -15,9 +15,14 @@ export const createPatientSchema = z.object({
     .optional()
     .or(z.literal("")),
   birthDate: z.string().datetime().optional().or(z.literal("")),
+  age: z.number().int().min(0).max(150).optional(),
   sex: z.enum(["M", "F", "O"]).optional(),
   comorbidities: z.array(z.string().trim().min(1)).max(20).default([]),
+  allergies: z.array(z.string().trim().min(1)).max(50).default([]),
   notes: z.string().trim().max(500).optional(),
+  consentGiven: z
+    .boolean()
+    .refine((v) => v === true, "O consentimento do paciente é obrigatório"),
 });
 
 export type CreatePatientInput = z.infer<typeof createPatientSchema>;
@@ -33,6 +38,17 @@ export const createPrescriptionSchema = z
     instructions: z.string().trim().max(500).optional(),
     quantityDispensed: z.number().int().min(1).max(10000).optional(),
     prescriber: z.string().trim().max(120).optional(),
+    batchLot: z.string().trim().max(60).optional(),
+    prescriptionRef: z.string().trim().max(200).optional(),
+    photoKey: z.string().trim().max(300).optional(),
+    expiryDate: z
+      .string()
+      .optional()
+      .transform((v) => {
+        if (!v) return undefined;
+        const d = new Date(v);
+        return isNaN(d.getTime()) ? undefined : d;
+      }),
     startDate: z
       .string()
       .datetime()

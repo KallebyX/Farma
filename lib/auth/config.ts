@@ -27,22 +27,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Senha", type: "password" },
       },
       authorize: async (raw) => {
-        const parsed = credentialsSchema.safeParse(raw);
-        if (!parsed.success) return null;
+        try {
+          const parsed = credentialsSchema.safeParse(raw);
+          if (!parsed.success) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email.toLowerCase() },
-        });
-        if (!user || !user.passwordHash) return null;
+          const user = await prisma.user.findUnique({
+            where: { email: parsed.data.email.toLowerCase() },
+          });
+          if (!user || !user.passwordHash) return null;
 
-        const ok = await argon2.verify(user.passwordHash, parsed.data.password);
-        if (!ok) return null;
+          const ok = await argon2.verify(user.passwordHash, parsed.data.password);
+          if (!ok) return null;
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-        };
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+          };
+        } catch (error) {
+          console.error("[auth] authorize error:", error);
+          return null;
+        }
       },
     }),
   ],

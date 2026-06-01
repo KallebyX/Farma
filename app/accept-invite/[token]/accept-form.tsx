@@ -51,24 +51,31 @@ export function AcceptInviteForm({ token, email, userExists }: Props) {
         }
 
         // Auto-login: trigger NextAuth credentials sign-in with the password
-        // we just set, then redirect to dashboard.
-        const loginRes = await fetch("/api/auth/callback/credentials", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            email,
-            password: payload.password,
-            redirect: "false",
-            callbackUrl: json.redirectTo ?? "/dashboard",
-          }),
-          redirect: "manual",
-        }).catch(() => null);
-
-        // Whether the NextAuth callback succeeded silently or not, force a
-        // navigation so the session cookie is read.
+        // we just set, then redirect to dashboard. CSRF token is required.
         const target = json.redirectTo ?? "/dashboard";
+        let loginRes: Response | null = null;
+        try {
+          const csrfRes = await fetch("/api/auth/csrf", { credentials: "include" });
+          const { csrfToken } = (await csrfRes.json()) as { csrfToken: string };
+
+          loginRes = await fetch("/api/auth/callback/credentials", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              csrfToken,
+              email,
+              password: payload.password,
+              redirect: "false",
+              callbackUrl: target,
+            }),
+            redirect: "manual",
+          });
+        } catch {
+          loginRes = null;
+        }
+
         if (loginRes && loginRes.status >= 400) {
-          // If auto-login failed, fall back to manual sign-in page.
           router.replace(`/sign-in?from=${encodeURIComponent(target)}`);
         } else {
           router.replace(target);

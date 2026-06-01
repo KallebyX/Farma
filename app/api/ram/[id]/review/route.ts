@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { tenantDb } from "@/lib/db";
 import { requireSession } from "@/lib/auth/session";
 import { ForbiddenError, UnauthorizedError, isAtLeast } from "@/lib/auth/permissions";
 import { Role, RAMStatus } from "@prisma/client";
@@ -12,6 +12,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (!isAtLeast(session.role, Role.PHARMACIST)) {
       return NextResponse.json({ ok: false, error: "Apenas farmacêutico pode revisar RAM" }, { status: 403 });
     }
+    const db = tenantDb(session.pharmacyId);
     const { id } = await ctx.params;
 
     let body: unknown;
@@ -25,7 +26,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       return NextResponse.json({ ok: false, error: "Dados inválidos" }, { status: 400 });
     }
 
-    const ram = await prisma.rAMReport.findFirst({
+    const ram = await db.rAMReport.findFirst({
       where: { id, patient: { pharmacyId: session.pharmacyId } },
     });
     if (!ram) return NextResponse.json({ ok: false, error: "Não encontrado" }, { status: 404 });
@@ -37,7 +38,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       vigimedProtocol = generateProtocol();
     }
 
-    const updated = await prisma.rAMReport.update({
+    const updated = await db.rAMReport.update({
       where: { id },
       data: {
         reviewedById: session.userId,

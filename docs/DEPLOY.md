@@ -144,6 +144,7 @@ Copie isso para o Vercel **Environment Variables**:
 |---|---|---|
 | `DATABASE_URL` | ✅ | postgres pooler (6543) |
 | `DIRECT_URL` | ✅ | postgres direct (5432) |
+| `DATABASE_URL_APP` | recomendado | role `farma_app` (ativa RLS — ver seção 10) |
 | `NEXTAUTH_SECRET` | ✅ | `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | ✅ | `https://seu-dominio.com` |
 | `APP_URL` | ✅ | `https://seu-dominio.com` |
@@ -166,7 +167,7 @@ Antes de receber o primeiro paciente real:
 
 - [ ] Trocar a senha do `owner@demo.farma` (ou criar OWNER novo e desativar o demo)
 - [ ] Configurar custom domain em Resend e remover `onboarding@resend.dev`
-- [ ] Habilitar Row-Level Security no Supabase (policies por `pharmacyId`) — backup para o isolamento que já fazemos no app
+- [x] Row-Level Security por `pharmacyId` no Supabase — políticas aplicadas (`prisma/rls.sql`). Falta **ativar** a conexão `farma_app` definindo `DATABASE_URL_APP` no Vercel (seção 10)
 - [ ] Configurar webhooks de delivery do Resend para tracking de bounce
 - [ ] Configurar alertas no Vercel para falhas em `/api/cron/*`
 - [ ] Apontar GitGuardian / outro SAST para o repo
@@ -195,3 +196,65 @@ Antes de receber o primeiro paciente real:
 
 **"Sessão inválida" depois de aceitar convite**
 → `NEXTAUTH_URL` precisa bater exatamente com o domínio (com ou sem www, http vs https). Ajuste e redeploy.
+
+---
+
+## 10. Ativando RLS por tenant (multitenant defense-in-depth)
+
+O isolamento por farmácia já é garantido na aplicação (todo query filtra por
+`pharmacyId`). Para reforçar **no banco** (Row-Level Security), a app passa a
+conectar com um papel de menor privilégio (`farma_app`, `NOBYPASSRLS`) que
+define o GUC `app.pharmacy_id` por requisição — as policies em `prisma/rls.sql`
+isolam as linhas de cada tenant. Auth, cron e onboarding continuam na conexão
+privilegiada (`DATABASE_URL`).
+
+O rollout é **progressivo e sem downtime**: enquanto `DATABASE_URL_APP` não
+existir, `tenantDb()` usa a conexão privilegiada (comportamento atual). Ao
+definir a env, a aplicação passa a enforced.
+
+### Passos
+
+1. **Aplicar as policies** (idempotente; já aplicado no projeto `farma`):
+   ```bash
+   psql "$DIRECT_URL" -f prisma/rls.sql
+   ```
+2. **Criar o papel** `farma_app` (uma vez), com uma senha forte gerada por você
+   (não versione a senha):
+   ```sql
+   CREATE ROLE farma_app LOGIN PASSWORD '<SENHA_FORTE>';
+   ALTER ROLE farma_app NOBYPASSRLS;
+   ```
+   > No projeto `farma` (Supabase ref `klsuismzlbdsswyfkssw`) o papel já existe;
+   > a senha foi entregue fora do repositório. Rotacione quando quiser com
+   > `ALTER ROLE farma_app PASSWORD '...';`.
+3. **Definir `DATABASE_URL_APP`** no Vercel apontando para `farma_app` via o
+   pooler (transaction mode, 6543). O usuário do pooler inclui o ref do projeto:
+   ```
+   DATABASE_URL_APP=postgresql://farma_app.<PROJECT_REF>:<SENHA>@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+   ```
+4. **Redeploy** e validar (ver abaixo). Para reverter, basta remover
+   `DATABASE_URL_APP` e redeploy.
+
+### Validação
+
+- Login normal, listar pacientes, abrir paciente, revisar RAM → tudo funciona.
+- Teste de isolamento (psql como admin), confirma 0 vazamento:
+  ```sql
+  BEGIN;
+  SET LOCAL ROLE farma_app;
+  SELECT set_config('app.pharmacy_id', '<UMA_FARMACIA>', true);
+  SELECT count(*) FROM "Patient";                         -- só dessa farmácia
+  SELECT count(*) FROM "Patient" WHERE "pharmacyId" <> '<UMA_FARMACIA>'; -- 0
+  ROLLBACK;
+  ```
+- Sem GUC (`SET LOCAL ROLE farma_app;` e nada mais) → `SELECT count(*) FROM "Patient"` retorna **0**.
+
+### Notas
+
+- Não use `FORCE ROW LEVEL SECURITY`: a conexão privilegiada (migrations/cron)
+  precisa do bypass. As policies usam `TO farma_app`, então só afetam a app.
+- `MedicationCatalog` é compartilhado (policy de leitura para todos os tenants).
+- `User`/`Session` têm deny explícito para `farma_app` (auth roda na conexão
+  privilegiada).
+- Os `cron` jobs e o webhook do WhatsApp são cross-tenant por natureza e
+  continuam usando `prisma` (privilegiado).
