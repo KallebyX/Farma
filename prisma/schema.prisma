@@ -87,6 +87,25 @@ model PharmacyProduct {
   @@index([name])
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Integration config (singleton, id="default"). Lets infra integrations be
+// configured in the DB (via MCP) when env vars can't be set. Read by the
+// WhatsApp/email clients, overriding env. Secrets live only in the private DB.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model IntegrationConfig {
+  id                 String   @id @default("default")
+  whatsappProvider   String?  // "zapi" | "meta" | "twilio" | "mock"
+  twilioAccountSid   String?
+  twilioAuthToken    String?
+  twilioWhatsappFrom String?
+  twilioContentSid   String?  // optional approved template for proactive msgs
+  emailProvider      String?  // "resend" | ...
+  resendApiKey       String?
+  emailFrom          String?
+  updatedAt          DateTime @updatedAt
+}
+
 model User {
   id             String    @id @default(uuid())
   email          String    @unique
