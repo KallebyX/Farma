@@ -74,6 +74,8 @@ export type TwilioFormOpts = {
   contentSid?: string | null;
   /** Already-resolved ContentSid for this message's template key (takes precedence). */
   templateSid?: string | null;
+  /** Absolute URL Twilio POSTs delivery status to (sent/delivered/undelivered + ErrorCode). */
+  statusCallback?: string | null;
 };
 
 /**
@@ -99,6 +101,9 @@ export function buildTwilioForm(msg: WhatsAppOutbound, opts: TwilioFormOpts): UR
     // No template configured: plain Body (works only inside the 24h session window / sandbox).
     body.set("Body", asText(msg));
   }
+  // Ask Twilio to POST delivery-status updates so undelivered/failed (+ ErrorCode)
+  // are observable in prod (the create-call only reports the initial "queued").
+  if (opts.statusCallback) body.set("StatusCallback", opts.statusCallback);
   return body;
 }
 
@@ -153,7 +158,10 @@ export async function sendWhatsApp(msg: WhatsAppOutbound): Promise<WhatsAppSendR
     if (!sid || !token || (!from && !messagingServiceSid)) return mockLog("text", msg.phone, asText(msg));
     // Resolve the message's keyed template (e.g. "otp" → authentication template SID).
     const templateSid = msg.template ? resolveTemplateSid(cfg, msg.template.key) : null;
-    return sendViaTwilio(msg, sid, token, { from, messagingServiceSid, contentSid, templateSid });
+    // Delivery-status webhook (absolute URL). Lets us see undelivered/ErrorCode in logs.
+    const base = process.env.APP_URL?.replace(/\/$/, "");
+    const statusCallback = base ? `${base}/api/twilio/status` : null;
+    return sendViaTwilio(msg, sid, token, { from, messagingServiceSid, contentSid, templateSid, statusCallback });
   }
 
   const isMock = provider === "mock" || !API_KEY || !INSTANCE_ID;
