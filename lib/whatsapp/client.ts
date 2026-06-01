@@ -121,12 +121,21 @@ async function sendViaTwilio(
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
+      // Surface the Twilio error in prod logs — the most common causes are an
+      // unapproved template, a freeform Body outside the 24h window, or
+      // ContentVariables that don't match the template's placeholders.
+      const usedTemplate = body.get("ContentSid") ?? "(Body)";
+      // eslint-disable-next-line no-console
+      console.error(`[wa:twilio] send FAILED → ${msg.phone} via ${usedTemplate}: HTTP ${res.status} ${text.slice(0, 300)}`);
       return { status: "FAILED", error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
     }
     const json = (await res.json().catch(() => null)) as { sid?: string } | null;
     return { status: "SENT", providerId: json?.sid };
   } catch (err) {
-    return { status: "FAILED", error: err instanceof Error ? err.message : String(err) };
+    const message = err instanceof Error ? err.message : String(err);
+    // eslint-disable-next-line no-console
+    console.error(`[wa:twilio] send threw → ${msg.phone}: ${message}`);
+    return { status: "FAILED", error: message };
   }
 }
 
