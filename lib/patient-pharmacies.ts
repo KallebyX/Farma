@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { ensureAccountForPatient } from "@/lib/patient-account";
 
 /**
  * Patient-facing multi-pharmacy linking for Meu Prontuário.
@@ -71,6 +72,7 @@ export async function linkPatientToPharmacy(
     },
     select: { id: true },
   });
+  await ensureAccountForPatient(patient.id);
   return { ok: true, patientId: patient.id, pharmacyName: pharmacy.fantasia ?? pharmacy.razaoSocial };
 }
 

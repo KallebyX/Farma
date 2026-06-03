@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requestPatientCode, isValidPhone } from "@/lib/patient-auth";
 import { resolveReferrer, recordReferral } from "@/lib/referral";
+import { ensureAccountForPatient } from "@/lib/patient-account";
 
 /** Open patient self-registration + pharmacy discovery + referral support. */
 
@@ -50,6 +51,7 @@ export async function registerPatient(args: { name: string; phone: string; pharm
     await recordReferral({ referredId: patient.id, referrerId: referrer.id, pharmacyId });
   }
 
+  await ensureAccountForPatient(patient.id);
   await requestPatientCode(args.phone);
   return { ok: true as const };
 }
