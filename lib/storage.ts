@@ -18,12 +18,28 @@ type StorageCfg = { url: string; key: string; bucket: string };
 async function resolveStorage(): Promise<StorageCfg | null> {
   // getIntegrationConfig() already swallows errors (returns {}), so no .catch needed.
   const cfg = await getIntegrationConfig();
-  const url = (cfg.supabaseUrl ?? process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const dbUrl = (cfg.supabaseUrl ?? "").replace(/\/+$/, "");
+  const envUrl = (process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const url = dbUrl || envUrl;
   const key = cfg.supabaseServiceRoleKey ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
   const bucket = cfg.supabaseExamsBucket ?? process.env.SUPABASE_EXAMS_BUCKET ?? "exams";
-  // Require an https origin — the URL is fetched server-side; this guards against
-  // SSRF to http/internal hosts if the IntegrationConfig row is ever tampered with.
-  if (!url || !key || !/^https:\/\/[^/]+$/i.test(url)) return null;
+  if (!url || !key) return null;
+
+  // The service-role key is sent as a Bearer token to this URL, so validate it
+  // strictly. Must be https; and a DB-provided URL (settable via MCP) is locked to
+  // Supabase hosts, so a tampered IntegrationConfig row can't exfiltrate the key
+  // (SSRF). Env-provided URLs are trusted (local dev / self-hosted Supabase).
+  let host: string;
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:") return null;
+    host = u.hostname;
+  } catch {
+    return null;
+  }
+  const isDbSourced = Boolean(dbUrl) && url === dbUrl;
+  if (isDbSourced && !/(^|\.)supabase\.(co|in|net)$/i.test(host)) return null;
+
   return { url, key, bucket };
 }
 
