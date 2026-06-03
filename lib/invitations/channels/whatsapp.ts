@@ -1,4 +1,5 @@
 import { roleLabel } from "@/lib/auth/permissions";
+import { sendWhatsApp } from "@/lib/whatsapp/client";
 import type { Role } from "@prisma/client";
 
 export type WhatsAppDeliveryResult = {
@@ -33,40 +34,25 @@ function waMeFallback(phone: string, message: string): string {
 
 export async function sendInviteWhatsApp(params: WhatsAppParams): Promise<WhatsAppDeliveryResult> {
   const message = buildMessage(params);
-  const apiKey = process.env.WHATSAPP_API_KEY;
-  const instanceId = process.env.WHATSAPP_INSTANCE_ID;
-  const baseUrl = process.env.WHATSAPP_API_BASE_URL ?? "https://api.z-api.io";
-
-  if (!apiKey || !instanceId) {
+  // Send through the unified WhatsApp client (Twilio/Z-API per IntegrationConfig).
+  // The invite is business-initiated, so it needs an approved template on the WABA;
+  // we pass the "generic" key. If the provider isn't configured (MOCK) or the send
+  // fails (e.g. no approved template), we degrade to a wa.me click-to-send link.
+  try {
+    const res = await sendWhatsApp({ kind: "text", phone: params.phone, text: message, template: { key: "generic" } });
+    if (res.status === "SENT") return { status: "SENT", providerId: res.providerId };
     return {
       status: "SKIPPED",
       providerId: waMeFallback(params.phone, message),
-      error: "WhatsApp API não configurada — gerado link wa.me como fallback",
+      error: res.error
+        ? `Envio automático indisponível (${res.error}) — gerado link wa.me`
+        : "WhatsApp não configurado — gerado link wa.me como fallback",
     };
-  }
-
-  try {
-    const url = `${baseUrl}/instances/${instanceId}/token/${apiKey}/send-text`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        phone: params.phone.replace(/\D/g, ""),
-        message,
-      }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      return { status: "FAILED", error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
-    }
-
-    const json = (await res.json().catch(() => null)) as { messageId?: string; id?: string } | null;
-    return { status: "SENT", providerId: json?.messageId ?? json?.id };
   } catch (err) {
     return {
-      status: "FAILED",
-      error: err instanceof Error ? err.message : String(err),
+      status: "SKIPPED",
+      providerId: waMeFallback(params.phone, message),
+      error: `Falha no envio (${err instanceof Error ? err.message : String(err)}) — gerado link wa.me`,
     };
   }
 }
