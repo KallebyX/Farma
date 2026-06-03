@@ -21,6 +21,9 @@ export type IntegrationConfig = {
   emailProvider?: string | null;
   resendApiKey?: string | null;
   emailFrom?: string | null;
+  supabaseUrl?: string | null;
+  supabaseServiceRoleKey?: string | null;
+  supabaseExamsBucket?: string | null;
 };
 
 let cache: { at: number; cfg: IntegrationConfig } | null = null;

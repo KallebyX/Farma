@@ -106,6 +106,9 @@ model IntegrationConfig {
   emailProvider             String? // "resend" | ...
   resendApiKey              String?
   emailFrom                 String?
+  supabaseUrl               String? // storage: projeto Supabase (https://….supabase.co)
+  supabaseServiceRoleKey    String? // storage: service_role (privado; bypassa RLS p/ upload server-side)
+  supabaseExamsBucket       String? // storage: bucket de exames (default "exams")
   updatedAt                 DateTime @updatedAt
 }
 

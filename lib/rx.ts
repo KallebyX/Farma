@@ -15,7 +15,7 @@ const rxSelect = {
 } as const;
 
 export async function createPrescriptionFromFile(args: { patientId: string; pharmacyId: string; file: File; notes?: string | null }) {
-  if (!storageConfigured()) return { ok: false as const, status: 503, error: "Armazenamento não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)" };
+  if (!(await storageConfigured())) return { ok: false as const, status: 503, error: "Armazenamento não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)" };
   const { file } = args;
   if (!(file instanceof File) || file.size === 0) return { ok: false as const, status: 400, error: "Arquivo obrigatório" };
   if (file.size > EXAM_MAX_BYTES) return { ok: false as const, status: 413, error: "Arquivo acima de 10 MB" };

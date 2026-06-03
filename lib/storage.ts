@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { getIntegrationConfig } from "@/lib/integration-config";
 
 /**
  * Supabase Storage access via the REST API (no SDK dependency). Files are
@@ -6,16 +7,25 @@ import { randomUUID } from "node:crypto";
  * so the bucket stays private and every read goes through a short-lived signed
  * URL minted by our own authorization checks.
  *
- * Activation needs SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in the environment.
- * When absent, storageConfigured() is false and callers degrade gracefully.
+ * Config comes from the DB (IntegrationConfig, set via MCP) OVER the environment
+ * (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY), so storage can be activated without
+ * Vercel env vars. When neither is set, storageConfigured() is false and callers
+ * degrade gracefully.
  */
 
-const SUPABASE_URL = (process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const BUCKET = process.env.SUPABASE_EXAMS_BUCKET ?? "exams";
+type StorageCfg = { url: string; key: string; bucket: string };
 
-export function storageConfigured(): boolean {
-  return Boolean(SUPABASE_URL && SERVICE_KEY);
+async function resolveStorage(): Promise<StorageCfg | null> {
+  const cfg = await getIntegrationConfig().catch(() => ({}) as Awaited<ReturnType<typeof getIntegrationConfig>>);
+  const url = (cfg.supabaseUrl ?? process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const key = cfg.supabaseServiceRoleKey ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  const bucket = cfg.supabaseExamsBucket ?? process.env.SUPABASE_EXAMS_BUCKET ?? "exams";
+  if (!url || !key) return null;
+  return { url, key, bucket };
+}
+
+export async function storageConfigured(): Promise<boolean> {
+  return (await resolveStorage()) !== null;
 }
 
 /** Sanitize a user-supplied filename into something safe for an object key. */
@@ -33,8 +43,8 @@ function encodePath(path: string): string {
   return path.split("/").map(encodeURIComponent).join("/");
 }
 
-function authHeaders(): Record<string, string> {
-  return { Authorization: `Bearer ${SERVICE_KEY}`, apikey: SERVICE_KEY as string };
+function authHeaders(key: string): Record<string, string> {
+  return { Authorization: `Bearer ${key}`, apikey: key };
 }
 
 /** Uploads bytes to the private bucket. */
@@ -43,15 +53,16 @@ export async function uploadObject(
   body: Buffer | ArrayBuffer | Uint8Array,
   contentType: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!storageConfigured()) return { ok: false, error: "storage_not_configured" };
+  const s = await resolveStorage();
+  if (!s) return { ok: false, error: "storage_not_configured" };
   const src = Buffer.isBuffer(body) ? body : Buffer.from(body as ArrayBuffer);
   // Copy into a fresh ArrayBuffer-backed view so the body type is a clean BodyInit.
   const bytes = new Uint8Array(src.byteLength);
   bytes.set(src);
   try {
-    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodePath(path)}`, {
+    const res = await fetch(`${s.url}/storage/v1/object/${s.bucket}/${encodePath(path)}`, {
       method: "POST",
-      headers: { ...authHeaders(), "Content-Type": contentType || "application/octet-stream", "x-upsert": "true", "cache-control": "3600" },
+      headers: { ...authHeaders(s.key), "Content-Type": contentType || "application/octet-stream", "x-upsert": "true", "cache-control": "3600" },
       body: bytes,
       signal: AbortSignal.timeout(20000),
     });
@@ -64,17 +75,18 @@ export async function uploadObject(
 
 /** Mints a short-lived signed GET URL for a stored object, or null. */
 export async function signedDownloadUrl(path: string, expiresIn = 300): Promise<string | null> {
-  if (!storageConfigured()) return null;
+  const s = await resolveStorage();
+  if (!s) return null;
   try {
-    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${BUCKET}/${encodePath(path)}`, {
+    const res = await fetch(`${s.url}/storage/v1/object/sign/${s.bucket}/${encodePath(path)}`, {
       method: "POST",
-      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      headers: { ...authHeaders(s.key), "Content-Type": "application/json" },
       body: JSON.stringify({ expiresIn }),
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) return null;
     const j = (await res.json()) as { signedURL?: string };
-    return j.signedURL ? `${SUPABASE_URL}/storage/v1${j.signedURL}` : null;
+    return j.signedURL ? `${s.url}/storage/v1${j.signedURL}` : null;
   } catch {
     return null;
   }
@@ -82,11 +94,12 @@ export async function signedDownloadUrl(path: string, expiresIn = 300): Promise<
 
 /** Deletes an object (best-effort). */
 export async function removeObject(path: string): Promise<boolean> {
-  if (!storageConfigured()) return false;
+  const s = await resolveStorage();
+  if (!s) return false;
   try {
-    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${encodePath(path)}`, {
+    const res = await fetch(`${s.url}/storage/v1/object/${s.bucket}/${encodePath(path)}`, {
       method: "DELETE",
-      headers: authHeaders(),
+      headers: authHeaders(s.key),
       signal: AbortSignal.timeout(10000),
     });
     return res.ok;
