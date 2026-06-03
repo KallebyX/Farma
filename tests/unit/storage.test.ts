@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { safeFileName, buildExamKey, storageConfigured, EXAM_ALLOWED_TYPES, EXAM_MAX_BYTES } from "@/lib/storage";
+import { safeFileName, buildExamKey, storageConfigured, validateStorageUrl, EXAM_ALLOWED_TYPES, EXAM_MAX_BYTES } from "@/lib/storage";
 
 describe("storage helpers", () => {
   it("is not configured without env/DB credentials", async () => {
@@ -19,6 +19,25 @@ describe("storage helpers", () => {
     expect(key.startsWith("ph1/pt1/")).toBe(true);
     expect(key.endsWith("-exame.pdf")).toBe(true);
     expect(buildExamKey("ph1", "pt1", "exame.pdf")).not.toBe(key); // uuid makes it unique
+  });
+
+  it("validateStorageUrl: accepts Supabase host from DB, normalizes to origin", () => {
+    expect(validateStorageUrl("https://abc.supabase.co", true)).toBe("https://abc.supabase.co");
+    expect(validateStorageUrl("https://abc.supabase.co/", true)).toBe("https://abc.supabase.co");
+  });
+  it("validateStorageUrl: rejects DB-sourced non-Supabase / non-https / non-origin / credentials", () => {
+    expect(validateStorageUrl("https://evil.com", true)).toBeNull(); // not a supabase host
+    expect(validateStorageUrl("http://abc.supabase.co", true)).toBeNull(); // not https
+    expect(validateStorageUrl("https://abc.supabase.co/path?x=1", true)).toBeNull(); // has path/query
+    expect(validateStorageUrl("https://abc.supabase.co#frag", true)).toBeNull(); // has hash
+    expect(validateStorageUrl("https://user:pass@abc.supabase.co", true)).toBeNull(); // credentials
+    expect(validateStorageUrl("https://abc.supabase.co.evil.com", true)).toBeNull(); // suffix spoof
+    expect(validateStorageUrl("", true)).toBeNull();
+  });
+  it("validateStorageUrl: env-sourced allows any https origin (self-host/dev), still origin-only", () => {
+    expect(validateStorageUrl("https://storage.local", false)).toBe("https://storage.local");
+    expect(validateStorageUrl("https://storage.local/x", false)).toBeNull(); // still must be origin-only
+    expect(validateStorageUrl("http://storage.local", false)).toBeNull(); // still https-only
   });
 
   it("exposes upload limits", () => {

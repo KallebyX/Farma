@@ -15,15 +15,43 @@ import { getIntegrationConfig } from "@/lib/integration-config";
 
 type StorageCfg = { url: string; key: string; bucket: string };
 
+/**
+ * Validates a storage base URL and normalizes it to an ORIGIN (scheme+host, no
+ * path/query/hash/credentials). The service-role key is sent as a Bearer token to
+ * this URL, so this is security-critical:
+ *  - must be https;
+ *  - must be origin-only (a path/query/hash/userinfo would break `${url}/storage/v1/…`
+ *    and could divert the key to an unintended endpoint);
+ *  - when DB-sourced (settable via MCP), the host is locked to Supabase domains so a
+ *    tampered IntegrationConfig row can't exfiltrate the key (SSRF). Env-sourced URLs
+ *    are trusted (local dev / self-hosted Supabase).
+ * Returns the clean origin, or null if invalid.
+ */
+export function validateStorageUrl(rawUrl: string, fromDb: boolean): string | null {
+  if (!rawUrl) return null;
+  let u: URL;
+  try {
+    u = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "https:") return null;
+  if (u.username || u.password) return null;
+  if ((u.pathname && u.pathname !== "/") || u.search || u.hash) return null;
+  if (fromDb && !/(^|\.)supabase\.(co|in|net)$/i.test(u.hostname)) return null;
+  return u.origin;
+}
+
 async function resolveStorage(): Promise<StorageCfg | null> {
   // getIntegrationConfig() already swallows errors (returns {}), so no .catch needed.
   const cfg = await getIntegrationConfig();
-  const url = (cfg.supabaseUrl ?? process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const dbUrl = (cfg.supabaseUrl ?? "").trim();
+  const envUrl = (process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
   const key = cfg.supabaseServiceRoleKey ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
   const bucket = cfg.supabaseExamsBucket ?? process.env.SUPABASE_EXAMS_BUCKET ?? "exams";
-  // Require an https origin — the URL is fetched server-side; this guards against
-  // SSRF to http/internal hosts if the IntegrationConfig row is ever tampered with.
-  if (!url || !key || !/^https:\/\/[^/]+$/i.test(url)) return null;
+  // DB takes precedence; a DB-sourced URL is host-restricted, env is trusted.
+  const url = dbUrl ? validateStorageUrl(dbUrl, true) : validateStorageUrl(envUrl, false);
+  if (!url || !key) return null;
   return { url, key, bucket };
 }
 
