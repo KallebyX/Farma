@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import jsQR from "jsqr";
 
 type Account = { points: number; lifetime: number; tier: string; streakDays: number };
 type Mission = { code: string; title: string; description: string; points: number; icon: string | null; completed: boolean };
@@ -506,6 +507,7 @@ function ReceiptScanHubSection({ token, onFlash }: { token: string; onFlash: (m:
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -533,33 +535,61 @@ function ReceiptScanHubSection({ token, onFlash }: { token: string; onFlash: (m:
   }
 
   async function startScan() {
-    const Ctor = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector;
-    if (!Ctor || !navigator.mediaDevices?.getUserMedia) { onFlash("Câmera indisponível — cole a chave abaixo"); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { onFlash("Câmera indisponível — cole a chave abaixo"); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       streamRef.current = stream;
+      // Only flip state; the effect below wires the (now-rendered) <video> element.
       setScanning(true);
-      const detector = new Ctor({ formats: ["qr_code"] });
-      const video = videoRef.current!;
-      video.srcObject = stream;
-      await video.play();
-      const tick = async () => {
-        if (!streamRef.current || !videoRef.current) return;
-        try {
-          const codes = await detector.detect(videoRef.current);
-          if (codes[0]?.rawValue) { const v = codes[0].rawValue; stopScan(); submit(v); return; }
-        } catch { /* keep trying */ }
-        rafRef.current = requestAnimationFrame(tick);
-      };
-      rafRef.current = requestAnimationFrame(tick);
     } catch { onFlash("Não foi possível abrir a câmera"); stopScan(); }
   }
+
+  // Wire the camera stream + detection loop AFTER <video> is in the DOM (scanning=true).
+  // Native BarcodeDetector (Chrome/Android) when present; else jsQR fallback (Safari/iOS).
+  useEffect(() => {
+    if (!scanning) return;
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+    const Ctor = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector;
+    const detector = Ctor ? new Ctor({ formats: ["qr_code"] }) : null;
+    let cancelled = false;
+    video.srcObject = stream;
+    video.play().catch(() => {});
+
+    const tick = async () => {
+      if (cancelled || !videoRef.current) return;
+      const v = videoRef.current;
+      try {
+        if (detector) {
+          const codes = await detector.detect(v);
+          if (codes[0]?.rawValue) { const raw = codes[0].rawValue; stopScan(); submit(raw); return; }
+        } else if (v.readyState >= 2 && v.videoWidth > 0) {
+          const canvas = canvasRef.current ?? document.createElement("canvas");
+          canvas.width = v.videoWidth;
+          canvas.height = v.videoHeight;
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          if (ctx) {
+            ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+            const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const found = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
+            if (found?.data) { const raw = found.data; stopScan(); submit(raw); return; }
+          }
+        }
+      } catch { /* keep trying */ }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { cancelled = true; if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanning]);
 
   return (
     <Section title="🧾 Nota premiada" subtitle="Escaneie o QR da nota fiscal e ganhe pontos">
       {scanning ? (
         <div className="rounded-xl overflow-hidden border border-emerald-400/40">
           <video ref={videoRef} className="w-full bg-black" muted playsInline />
+          <canvas ref={canvasRef} className="hidden" />
           <button onClick={stopScan} className="w-full bg-white/10 text-white text-sm py-2">Cancelar</button>
         </div>
       ) : (
