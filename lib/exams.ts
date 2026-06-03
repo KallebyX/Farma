@@ -20,7 +20,7 @@ export type CreateExamResult =
 
 export async function createExamFromFile(args: CreateExamArgs): Promise<CreateExamResult> {
   if (!(await storageConfigured())) {
-    return { ok: false, status: 503, error: "Armazenamento de exames não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)" };
+    return { ok: false, status: 503, error: "Armazenamento de exames não configurado (defina em Integrações no banco ou SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)" };
   }
   const { file, title } = args;
   if (!(file instanceof File) || file.size === 0) return { ok: false, status: 400, error: "Arquivo obrigatório" };

@@ -16,11 +16,14 @@ import { getIntegrationConfig } from "@/lib/integration-config";
 type StorageCfg = { url: string; key: string; bucket: string };
 
 async function resolveStorage(): Promise<StorageCfg | null> {
-  const cfg = await getIntegrationConfig().catch(() => ({}) as Awaited<ReturnType<typeof getIntegrationConfig>>);
+  // getIntegrationConfig() already swallows errors (returns {}), so no .catch needed.
+  const cfg = await getIntegrationConfig();
   const url = (cfg.supabaseUrl ?? process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
   const key = cfg.supabaseServiceRoleKey ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
   const bucket = cfg.supabaseExamsBucket ?? process.env.SUPABASE_EXAMS_BUCKET ?? "exams";
-  if (!url || !key) return null;
+  // Require an https origin — the URL is fetched server-side; this guards against
+  // SSRF to http/internal hosts if the IntegrationConfig row is ever tampered with.
+  if (!url || !key || !/^https:\/\/[^/]+$/i.test(url)) return null;
   return { url, key, bucket };
 }
 
