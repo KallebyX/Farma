@@ -15,31 +15,43 @@ import { getIntegrationConfig } from "@/lib/integration-config";
 
 type StorageCfg = { url: string; key: string; bucket: string };
 
-async function resolveStorage(): Promise<StorageCfg | null> {
-  // getIntegrationConfig() already swallows errors (returns {}), so no .catch needed.
-  const cfg = await getIntegrationConfig();
-  const dbUrl = (cfg.supabaseUrl ?? "").replace(/\/+$/, "");
-  const envUrl = (process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
-  const url = dbUrl || envUrl;
-  const key = cfg.supabaseServiceRoleKey ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-  const bucket = cfg.supabaseExamsBucket ?? process.env.SUPABASE_EXAMS_BUCKET ?? "exams";
-  if (!url || !key) return null;
-
-  // The service-role key is sent as a Bearer token to this URL, so validate it
-  // strictly. Must be https; and a DB-provided URL (settable via MCP) is locked to
-  // Supabase hosts, so a tampered IntegrationConfig row can't exfiltrate the key
-  // (SSRF). Env-provided URLs are trusted (local dev / self-hosted Supabase).
-  let host: string;
+/**
+ * Validates a storage base URL and normalizes it to an ORIGIN (scheme+host, no
+ * path/query/hash/credentials). The service-role key is sent as a Bearer token to
+ * this URL, so this is security-critical:
+ *  - must be https;
+ *  - must be origin-only (a path/query/hash/userinfo would break `${url}/storage/v1/…`
+ *    and could divert the key to an unintended endpoint);
+ *  - when DB-sourced (settable via MCP), the host is locked to Supabase domains so a
+ *    tampered IntegrationConfig row can't exfiltrate the key (SSRF). Env-sourced URLs
+ *    are trusted (local dev / self-hosted Supabase).
+ * Returns the clean origin, or null if invalid.
+ */
+export function validateStorageUrl(rawUrl: string, fromDb: boolean): string | null {
+  if (!rawUrl) return null;
+  let u: URL;
   try {
-    const u = new URL(url);
-    if (u.protocol !== "https:") return null;
-    host = u.hostname;
+    u = new URL(rawUrl);
   } catch {
     return null;
   }
-  const isDbSourced = Boolean(dbUrl) && url === dbUrl;
-  if (isDbSourced && !/(^|\.)supabase\.(co|in|net)$/i.test(host)) return null;
+  if (u.protocol !== "https:") return null;
+  if (u.username || u.password) return null;
+  if ((u.pathname && u.pathname !== "/") || u.search || u.hash) return null;
+  if (fromDb && !/(^|\.)supabase\.(co|in|net)$/i.test(u.hostname)) return null;
+  return u.origin;
+}
 
+async function resolveStorage(): Promise<StorageCfg | null> {
+  // getIntegrationConfig() already swallows errors (returns {}), so no .catch needed.
+  const cfg = await getIntegrationConfig();
+  const dbUrl = (cfg.supabaseUrl ?? "").trim();
+  const envUrl = (process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
+  const key = cfg.supabaseServiceRoleKey ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  const bucket = cfg.supabaseExamsBucket ?? process.env.SUPABASE_EXAMS_BUCKET ?? "exams";
+  // DB takes precedence; a DB-sourced URL is host-restricted, env is trusted.
+  const url = dbUrl ? validateStorageUrl(dbUrl, true) : validateStorageUrl(envUrl, false);
+  if (!url || !key) return null;
   return { url, key, bucket };
 }
 
