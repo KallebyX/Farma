@@ -27,10 +27,14 @@ export async function ensureDemoPatient(): Promise<string> {
   });
 
   // A user is required as Patient.createdById; reuse a dedicated demo system user.
-  let user = await prisma.user.findFirst({ where: { email: "demo-system@farma.app" }, select: { id: true } });
-  if (!user) {
-    user = await prisma.user.create({ data: { email: "demo-system@farma.app", name: "Demonstração" }, select: { id: true } });
-  }
+  // upsert (not findFirst+create) to be atomic — concurrent demo visits would
+  // otherwise race and hit a P2002 unique violation on the email.
+  const user = await prisma.user.upsert({
+    where: { email: "demo-system@farma.app" },
+    update: {},
+    create: { email: "demo-system@farma.app", name: "Demonstração" },
+    select: { id: true },
+  });
   await prisma.membership.upsert({
     where: { userId_pharmacyId: { userId: user.id, pharmacyId: pharmacy.id } },
     update: {},
