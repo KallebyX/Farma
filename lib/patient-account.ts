@@ -38,20 +38,29 @@ export async function ensureAccountForPatient(patientId: string): Promise<void> 
  */
 export async function backfillPatientAccounts(): Promise<{ accounts: number; links: number }> {
   const patients = await prisma.patient.findMany({
-    select: { id: true, phone: true, name: true, pharmacyId: true, birthDate: true, sex: true, updatedAt: true },
-    orderBy: { updatedAt: "desc" },
+    select: { id: true, phone: true, name: true, pharmacyId: true, birthDate: true, sex: true },
+    orderBy: { updatedAt: "desc" }, // first row seen per phone = most recent identity
   });
-  const seenPhone = new Set<string>();
+  // 1) One account per distinct phone (using already-loaded data — no per-patient re-query).
+  const accountIdByPhone = new Map<string, string>();
   for (const p of patients) {
-    if (!seenPhone.has(p.phone)) {
-      seenPhone.add(p.phone);
-      await prisma.patientAccount.upsert({
-        where: { phone: p.phone },
-        update: {},
-        create: { phone: p.phone, name: p.name, birthDate: p.birthDate, sex: p.sex, status: "ACTIVE" },
-      });
-    }
-    await ensureAccountForPatient(p.id);
+    if (accountIdByPhone.has(p.phone)) continue;
+    const account = await prisma.patientAccount.upsert({
+      where: { phone: p.phone },
+      update: {},
+      create: { phone: p.phone, name: p.name, birthDate: p.birthDate, sex: p.sex, status: "ACTIVE" },
+      select: { id: true },
+    });
+    accountIdByPhone.set(p.phone, account.id);
+  }
+  // 2) One link per legacy Patient row → its account + pharmacy.
+  for (const p of patients) {
+    const accountId = accountIdByPhone.get(p.phone)!;
+    await prisma.patientPharmacyLink.upsert({
+      where: { accountId_pharmacyId: { accountId, pharmacyId: p.pharmacyId } },
+      update: { patientId: p.id, status: "ACTIVE" },
+      create: { accountId, pharmacyId: p.pharmacyId, patientId: p.id, status: "ACTIVE" },
+    });
   }
   const [accounts, links] = await Promise.all([
     prisma.patientAccount.count(),
