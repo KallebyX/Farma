@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { safeFileName, buildExamKey, storageConfigured, EXAM_ALLOWED_TYPES, EXAM_MAX_BYTES } from "@/lib/storage";
 
 describe("storage helpers", () => {
-  it("is not configured without env credentials", () => {
-    // SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are unset in the test env
-    expect(storageConfigured()).toBe(false);
+  it("is not configured without env/DB credentials", async () => {
+    // No SUPABASE_URL/SERVICE_ROLE_KEY in env and the DB config read fails → false.
+    expect(await storageConfigured()).toBe(false);
   });
 
   it("sanitizes filenames", () => {

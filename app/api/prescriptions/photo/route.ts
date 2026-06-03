@@ -7,7 +7,7 @@ import { buildExamKey, uploadObject, storageConfigured, EXAM_MAX_BYTES, EXAM_ALL
 export async function POST(req: Request) {
   try {
     const ctx = await requireSession();
-    if (!storageConfigured()) return NextResponse.json({ ok: false, error: "Armazenamento não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)" }, { status: 503 });
+    if (!(await storageConfigured())) return NextResponse.json({ ok: false, error: "Armazenamento não configurado (defina em Integrações no banco ou SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)" }, { status: 503 });
     const form = await req.formData();
     const file = form.get("file");
     const patientId = String(form.get("patientId") ?? "anon");
