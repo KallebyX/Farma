@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import jsQR from "jsqr";
 
 type Account = { points: number; lifetime: number; tier: string; streakDays: number };
 type Mission = { code: string; title: string; description: string; points: number; icon: string | null; completed: boolean };
@@ -238,6 +239,9 @@ export function HubClient(props: {
 
         {/* Profile */}
         <ProfileHubSection token={props.token} onFlash={flash} />
+
+        {/* My pharmacies (multi-link) */}
+        <MyPharmaciesHubSection token={props.token} onFlash={flash} />
 
         {/* Price comparator */}
         <CompareHubSection onFlash={flash} />
@@ -503,6 +507,7 @@ function ReceiptScanHubSection({ token, onFlash }: { token: string; onFlash: (m:
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -530,33 +535,61 @@ function ReceiptScanHubSection({ token, onFlash }: { token: string; onFlash: (m:
   }
 
   async function startScan() {
-    const Ctor = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector;
-    if (!Ctor || !navigator.mediaDevices?.getUserMedia) { onFlash("Câmera indisponível — cole a chave abaixo"); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { onFlash("Câmera indisponível — cole a chave abaixo"); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       streamRef.current = stream;
+      // Only flip state; the effect below wires the (now-rendered) <video> element.
       setScanning(true);
-      const detector = new Ctor({ formats: ["qr_code"] });
-      const video = videoRef.current!;
-      video.srcObject = stream;
-      await video.play();
-      const tick = async () => {
-        if (!streamRef.current || !videoRef.current) return;
-        try {
-          const codes = await detector.detect(videoRef.current);
-          if (codes[0]?.rawValue) { const v = codes[0].rawValue; stopScan(); submit(v); return; }
-        } catch { /* keep trying */ }
-        rafRef.current = requestAnimationFrame(tick);
-      };
-      rafRef.current = requestAnimationFrame(tick);
     } catch { onFlash("Não foi possível abrir a câmera"); stopScan(); }
   }
+
+  // Wire the camera stream + detection loop AFTER <video> is in the DOM (scanning=true).
+  // Native BarcodeDetector (Chrome/Android) when present; else jsQR fallback (Safari/iOS).
+  useEffect(() => {
+    if (!scanning) return;
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+    const Ctor = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector;
+    const detector = Ctor ? new Ctor({ formats: ["qr_code"] }) : null;
+    let cancelled = false;
+    video.srcObject = stream;
+    video.play().catch(() => {});
+
+    const tick = async () => {
+      if (cancelled || !videoRef.current) return;
+      const v = videoRef.current;
+      try {
+        if (detector) {
+          const codes = await detector.detect(v);
+          if (codes[0]?.rawValue) { const raw = codes[0].rawValue; stopScan(); submit(raw); return; }
+        } else if (v.readyState >= 2 && v.videoWidth > 0) {
+          const canvas = canvasRef.current ?? document.createElement("canvas");
+          canvas.width = v.videoWidth;
+          canvas.height = v.videoHeight;
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          if (ctx) {
+            ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+            const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const found = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
+            if (found?.data) { const raw = found.data; stopScan(); submit(raw); return; }
+          }
+        }
+      } catch { /* keep trying */ }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { cancelled = true; if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanning]);
 
   return (
     <Section title="🧾 Nota premiada" subtitle="Escaneie o QR da nota fiscal e ganhe pontos">
       {scanning ? (
         <div className="rounded-xl overflow-hidden border border-emerald-400/40">
           <video ref={videoRef} className="w-full bg-black" muted playsInline />
+          <canvas ref={canvasRef} className="hidden" />
           <button onClick={stopScan} className="w-full bg-white/10 text-white text-sm py-2">Cancelar</button>
         </div>
       ) : (
@@ -613,52 +646,200 @@ function RamReportHubSection({ token, onFlash }: { token: string; onFlash: (m: s
   );
 }
 
+type FullProfile = { name: string; phone: string; birthDate: string | null; sex: string | null; allergies: string[]; comorbidities: string[] };
+const SEX_LABEL: Record<string, string> = { M: "Masculino", F: "Feminino", O: "Outro" };
+
 function ProfileHubSection({ token, onFlash }: { token: string; onFlash: (m: string) => void }) {
-  const [profile, setProfile] = useState<{ name: string; phone: string; allergies: string[] } | null>(null);
+  const [profile, setProfile] = useState<FullProfile | null>(null);
   const [name, setName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [sex, setSex] = useState("");
   const [allergies, setAllergies] = useState("");
+  const [comorbidities, setComorbidities] = useState("");
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/patient/profile", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json()).then((j) => {
-        if (j.ok && j.profile) { setProfile(j.profile); setName(j.profile.name ?? ""); setAllergies((j.profile.allergies ?? []).join(", ")); }
+        if (j.ok && j.profile) {
+          const p = j.profile as FullProfile;
+          setProfile(p);
+          setName(p.name ?? "");
+          setBirthDate(p.birthDate ? p.birthDate.slice(0, 10) : "");
+          setSex(p.sex ?? "");
+          setAllergies((p.allergies ?? []).join(", "));
+          setComorbidities((p.comorbidities ?? []).join(", "));
+        }
       }).catch(() => {});
   }, [token]);
+
+  const toList = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
 
   async function save() {
     setBusy(true);
     try {
+      const payload = {
+        name,
+        sex: sex || null,
+        birthDate: birthDate || null,
+        allergies: toList(allergies),
+        comorbidities: toList(comorbidities),
+      };
       const r = await fetch("/api/patient/profile", {
         method: "PATCH", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ name, allergies: allergies.split(",").map((s) => s.trim()).filter(Boolean) }),
+        body: JSON.stringify(payload),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) { onFlash(j.error ?? "Erro"); return; }
       onFlash("Perfil atualizado ✓");
-      setProfile((p) => p ? { ...p, name, allergies: allergies.split(",").map((s) => s.trim()).filter(Boolean) } : p);
+      setProfile((p) => p ? { ...p, name, sex: sex || null, birthDate: birthDate || null, allergies: toList(allergies), comorbidities: toList(comorbidities) } : p);
       setOpen(false);
     } finally { setBusy(false); }
   }
 
   if (!profile) return null;
+  const age = profile.birthDate ? Math.floor((Date.now() - new Date(profile.birthDate).getTime()) / (365.25 * 86400000)) : null;
   return (
-    <Section title="👤 Meu perfil" subtitle="Mantenha seus dados atualizados">
+    <Section title="👤 Meu perfil" subtitle="Mantenha seus dados de saúde atualizados">
       {!open ? (
         <div className="rounded-xl bg-white/5 border border-white/10 p-3.5">
           <div className="font-semibold text-sm">{profile.name}</div>
-          <div className="text-emerald-100/60 text-xs mt-0.5">{profile.phone}{profile.allergies.length ? ` · alergias: ${profile.allergies.join(", ")}` : ""}</div>
-          <button onClick={() => setOpen(true)} className="mt-2 text-emerald-300 text-xs font-semibold">Editar →</button>
+          <div className="text-emerald-100/60 text-xs mt-0.5">
+            {profile.phone}
+            {age != null ? ` · ${age} anos` : ""}
+            {profile.sex ? ` · ${SEX_LABEL[profile.sex] ?? profile.sex}` : ""}
+          </div>
+          {profile.allergies.length > 0 && <div className="text-rose-300/80 text-xs mt-1">⚠️ Alergias: {profile.allergies.join(", ")}</div>}
+          {profile.comorbidities.length > 0 && <div className="text-emerald-100/50 text-xs mt-0.5">Condições: {profile.comorbidities.join(", ")}</div>}
+          <button onClick={() => setOpen(true)} className="mt-2 text-emerald-300 text-xs font-semibold">Editar perfil →</button>
         </div>
       ) : (
         <div className="rounded-xl bg-white/5 border border-white/10 p-3.5 space-y-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome" className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm outline-none" />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome completo" className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm outline-none" />
+          <div className="flex gap-2">
+            <input value={birthDate} onChange={(e) => setBirthDate(e.target.value)} type="date" className="flex-1 rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm text-white outline-none [color-scheme:dark]" />
+            <select value={sex} onChange={(e) => setSex(e.target.value)} className="rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm text-white outline-none">
+              <option className="text-slate-900" value="">Sexo</option>
+              <option className="text-slate-900" value="M">Masculino</option>
+              <option className="text-slate-900" value="F">Feminino</option>
+              <option className="text-slate-900" value="O">Outro</option>
+            </select>
+          </div>
           <input value={allergies} onChange={(e) => setAllergies(e.target.value)} placeholder="Alergias (separadas por vírgula)" className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm placeholder:text-emerald-100/40 outline-none" />
+          <input value={comorbidities} onChange={(e) => setComorbidities(e.target.value)} placeholder="Condições/comorbidades (vírgula)" className="w-full rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm placeholder:text-emerald-100/40 outline-none" />
           <div className="flex gap-2">
             <button onClick={save} disabled={busy} className="flex-1 rounded-lg bg-emerald-400 text-emerald-950 font-bold text-sm py-2 disabled:opacity-50">{busy ? "Salvando…" : "Salvar"}</button>
             <button onClick={() => setOpen(false)} className="rounded-lg bg-white/10 text-white text-sm px-4">Cancelar</button>
           </div>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+type PharmLink = { patientId: string; pharmacyId: string; name: string; chainName: string | null; city: string | null; state: string | null; points: number; lifetime: number; current: boolean };
+type PharmSearchRow = { id: string; name: string; cnpj: string | null };
+
+function MyPharmaciesHubSection({ token, onFlash }: { token: string; onFlash: (m: string) => void }) {
+  const [links, setLinks] = useState<PharmLink[]>([]);
+  const [term, setTerm] = useState("");
+  const [results, setResults] = useState<PharmSearchRow[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const authHeader = { Authorization: `Bearer ${token}` };
+
+  async function load() {
+    const r = await fetch("/api/patient/pharmacies", { headers: authHeader });
+    const j = await r.json().catch(() => ({}));
+    if (j.ok) setLinks(j.pharmacies as PharmLink[]);
+  }
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function search() {
+    if (term.trim().length < 2) { setResults(null); return; }
+    const r = await fetch(`/api/pharmacies/search?q=${encodeURIComponent(term)}`);
+    const j = await r.json().catch(() => ({}));
+    const linkedIds = new Set(links.map((l) => l.pharmacyId));
+    setResults((j.ok ? (j.pharmacies as PharmSearchRow[]) : []).filter((p) => !linkedIds.has(p.id)));
+  }
+
+  async function link(pharmacyId: string) {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/patient/pharmacies", {
+        method: "POST", headers: { ...authHeader, "Content-Type": "application/json" }, body: JSON.stringify({ pharmacyId }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) { onFlash(j.error ?? "Não foi possível vincular"); return; }
+      onFlash(`Vinculado a ${j.pharmacyName} 🏥`);
+      setTerm(""); setResults(null); setAdding(false);
+      load();
+    } finally { setBusy(false); }
+  }
+
+  async function unlink(patientId: string) {
+    setBusy(true);
+    try {
+      const r = await fetch(`/api/patient/pharmacies?patientId=${encodeURIComponent(patientId)}`, { method: "DELETE", headers: authHeader });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) { onFlash(j.error ?? "Não foi possível desvincular"); return; }
+      onFlash("Farmácia desvinculada");
+      load();
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <Section title="🏥 Minhas farmácias" subtitle="Vincule farmácias e veja onde você mais compra">
+      <div className="space-y-2">
+        {links.map((l, i) => (
+          <div key={l.patientId} className={`rounded-xl border p-3.5 ${l.current ? "bg-emerald-400/10 border-emerald-400/30" : "bg-white/5 border-white/10"}`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <div className="font-semibold text-sm truncate">
+                  {i === 0 && l.lifetime > 0 ? "⭐ " : ""}{l.name}{l.chainName ? ` · ${l.chainName}` : ""}
+                </div>
+                <div className="text-emerald-100/60 text-[11px] mt-0.5">
+                  {l.current ? "farmácia principal" : "vinculada"}
+                  {l.city ? ` · ${l.city}${l.state ? `/${l.state}` : ""}` : ""}
+                  {l.points > 0 ? ` · ${l.points.toLocaleString("pt-BR")} pts` : ""}
+                </div>
+              </div>
+              {!l.current && (
+                <button onClick={() => unlink(l.patientId)} disabled={busy} className="shrink-0 text-[11px] text-rose-300/80 hover:text-rose-300 font-semibold">desvincular</button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {!adding ? (
+        <button onClick={() => setAdding(true)} className="mt-2.5 w-full rounded-xl bg-white/5 border border-white/10 py-3 text-sm font-semibold hover:bg-white/10">+ Adicionar farmácia</button>
+      ) : (
+        <div className="mt-2.5 rounded-xl bg-white/5 border border-white/10 p-3.5">
+          <div className="flex gap-2">
+            <input value={term} onChange={(e) => setTerm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()} placeholder="Buscar farmácia por nome/CNPJ"
+              className="flex-1 rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm placeholder:text-emerald-100/40 outline-none" />
+            <button onClick={search} className="shrink-0 rounded-lg bg-emerald-400 text-emerald-950 font-bold text-sm px-3 py-2">Buscar</button>
+          </div>
+          {results && (
+            <div className="mt-2 space-y-1.5">
+              {results.length === 0 && <p className="text-emerald-100/50 text-xs px-1">Nenhuma farmácia encontrada.</p>}
+              {results.map((p) => (
+                <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="text-sm truncate">{p.name}</div>
+                    {p.cnpj && <div className="text-[10px] text-emerald-100/40">{p.cnpj}</div>}
+                  </div>
+                  <button onClick={() => link(p.id)} disabled={busy} className="shrink-0 text-xs font-bold rounded-lg px-3 py-1.5 bg-emerald-400 text-emerald-950 disabled:opacity-50">vincular</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button onClick={() => { setAdding(false); setResults(null); setTerm(""); }} className="mt-2 text-xs text-emerald-100/50">cancelar</button>
         </div>
       )}
     </Section>

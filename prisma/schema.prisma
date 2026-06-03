@@ -180,6 +180,8 @@ model Invitation {
 
   @@index([pharmacyId, status])
   @@index([email])
+  @@index([invitedById])
+  @@index([acceptedById])
 }
 
 model InvitationDelivery {
@@ -296,6 +298,7 @@ model Patient {
   @@unique([pharmacyId, phone])
   @@index([pharmacyId, status])
   @@index([phone])
+  @@index([createdById])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -381,6 +384,8 @@ model Prescription {
   returnExpectations ReturnExpectation[]
 
   @@index([patientId, status])
+  @@index([createdById])
+  @@index([medicationId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -476,6 +481,8 @@ model RAMReport {
 
   @@index([status, createdAt])
   @@index([patientId])
+  @@index([prescriptionId])
+  @@index([reviewedById])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -606,6 +613,7 @@ model MissionCompletion {
   mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
 
   @@unique([patientId, missionId])
+  @@index([missionId])
 }
 
 enum RewardKind {
@@ -648,6 +656,7 @@ model Redemption {
   reward  Reward  @relation(fields: [rewardId], references: [id])
 
   @@index([patientId, createdAt])
+  @@index([rewardId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -702,6 +711,7 @@ model AffiliateClick {
   conversions AffiliateConversion[]
 
   @@index([linkId, createdAt])
+  @@index([patientId])
 }
 
 enum ConversionStatus {
@@ -729,6 +739,7 @@ model AffiliateConversion {
 
   @@unique([partnerId, externalOrderId])
   @@index([patientId, createdAt])
+  @@index([clickId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1072,6 +1083,83 @@ model Dispensation {
 
   @@index([pharmacyId, createdAt])
   @@index([patientId, createdAt])
+  @@index([prescriptionId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Meu Prontuário — patient-owned identity (Phase 1 of the PRD).
+// Additive & non-breaking: the legacy pharmacy-scoped `Patient` stays as-is.
+// A PatientAccount is the sovereign owner of the patient's data; it links to
+// many pharmacies (opt-in, consent-scoped) via PatientPharmacyLink, which also
+// bridges to the legacy Patient row of that pharmacy. Auth tokens for the native
+// apps are tracked per-device with rotating refresh tokens.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PatientAccount {
+  id        String    @id @default(uuid())
+  phone     String    @unique // E.164 — identidade primária (OTP)
+  email     String?   @unique
+  name      String
+  cpf       String?   @unique
+  birthDate DateTime?
+  sex       String? // M | F | O
+  appleSub  String?   @unique // Sign in with Apple
+  googleSub String?   @unique // Google Sign-In
+  status    String    @default("ACTIVE") // ACTIVE | SUSPENDED | DELETED
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  links         PatientPharmacyLink[]
+  devices       PatientDevice[]
+  refreshTokens PatientRefreshToken[]
+
+  @@index([email])
+}
+
+model PatientPharmacyLink {
+  id         String    @id @default(uuid())
+  accountId  String
+  pharmacyId String
+  patientId  String? // ponte p/ o Patient legado daquela farmácia
+  status     String    @default("ACTIVE") // PENDING | ACTIVE | REVOKED
+  scopes     String[]  @default([]) // reaproveita ConsentScope
+  linkedAt   DateTime  @default(now())
+  revokedAt  DateTime?
+
+  account  PatientAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  pharmacy Pharmacy       @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+  patient  Patient?       @relation(fields: [patientId], references: [id], onDelete: SetNull)
+
+  @@unique([accountId, pharmacyId])
+  @@index([pharmacyId, status])
+  @@index([patientId])
+}
+
+model PatientDevice {
+  id         String   @id @default(uuid())
+  accountId  String
+  platform   String // ios | android | web
+  pushToken  String? // APNs/FCM token
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  account PatientAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}
+
+model PatientRefreshToken {
+  id        String    @id @default(uuid())
+  accountId String
+  tokenHash String    @unique
+  deviceId  String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  account PatientAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
