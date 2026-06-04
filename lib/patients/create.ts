@@ -4,6 +4,7 @@ import { consentRequest } from "@/lib/whatsapp/templates";
 import type { SessionContext } from "@/lib/auth/permissions";
 import type { CreatePatientInput, CreatePrescriptionInput } from "@/lib/patients/schema";
 import { materializeReminders } from "@/lib/scheduler/dispatch";
+import { ensureAccountForPatient } from "@/lib/patient-account";
 import { ConsentScope, Prisma } from "@prisma/client";
 
 export class PatientConflictError extends Error {
@@ -78,6 +79,7 @@ export async function createPatient(ctx: SessionContext, input: CreatePatientInp
     console.warn("[patient.create] consent dispatch failed", err);
   });
 
+  await ensureAccountForPatient(patient.id);
   return patient;
 }
 
