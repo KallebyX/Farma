@@ -4,8 +4,9 @@ import { FarmaLogo, Icon } from "@/components/ui";
 /**
  * Public marketing landing page. Intentionally auth-free (no `auth()` call) so
  * `/` always renders (even where the auth secret isn't set) and can be statically
- * optimized. Pharmacy CTAs go to /sign-up and /sign-in; patients go to /entrar;
- * anyone can preview the patient app at /demo/prontuario.
+ * optimized. Pharmacy CTAs go to /sign-up and /sign-in; patients sign up at
+ * /cadastro or sign in at /entrar; anyone can preview the patient app at
+ * /demo/prontuario.
  */
 export const metadata = {
   title: "Farma · Adesão, farmacovigilância e fidelização para farmácias",
