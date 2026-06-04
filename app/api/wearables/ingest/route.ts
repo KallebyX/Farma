@@ -6,7 +6,7 @@ import { isHaePayload, parseHealthAutoExport } from "@/lib/wearables/health-auto
  * POST /api/wearables/ingest
  * Header: Authorization: Bearer <ingestToken>
  * Body:   { samples: [{ metric, value, unit, recordedAt, source?, externalId? }] }
- *         — or the "Health Auto Export" iOS app payload { data: { metrics: [...] } }
+ *         - or the "Health Auto Export" iOS app payload { data: { metrics: [...] } }
  *
  * The universal health-data sink: Apple Health Shortcuts, the Health Auto Export
  * app, a companion app, or an aggregator (Terra/Vital) push samples here.

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { verifyPatientToken } from "@/lib/patient-token";
 import { signedDownloadUrl } from "@/lib/storage";
 
-/** GET /api/patient/exams/[id]/download — 302 to a signed URL for the patient's own exam. */
+/** GET /api/patient/exams/[id]/download - 302 to a signed URL for the patient's own exam. */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = req.headers.get("authorization");
   const bearer = auth?.startsWith("Bearer ") ? auth.slice(7) : null;

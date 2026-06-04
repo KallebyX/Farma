@@ -13,7 +13,7 @@ export class InvitationConflictError extends Error {
 export class RateLimitError extends Error {
   status = 429;
   constructor(public resetAt: number) {
-    super("Muitos convites — tente novamente em alguns minutos");
+    super("Muitos convites - tente novamente em alguns minutos");
   }
 }
 
@@ -120,7 +120,7 @@ export async function resendInvitation(ctx: SessionContext, invitationId: string
     throw new InvitationConflictError("Apenas convites pendentes podem ser reenviados");
   }
   if (invitation.expiresAt.getTime() < Date.now()) {
-    throw new InvitationConflictError("Convite expirado — crie um novo");
+    throw new InvitationConflictError("Convite expirado - crie um novo");
   }
 
   const limit = await inviteRateLimit.limit(`resend:${ctx.userId}`);
@@ -128,7 +128,7 @@ export async function resendInvitation(ctx: SessionContext, invitationId: string
 
   // We don't have the plain token (only hash). Resend uses a re-derived link
   // based on the original tokenHash being preserved on the invitation row.
-  // For security, we cannot recover the plain token — so resend rotates the
+  // For security, we cannot recover the plain token - so resend rotates the
   // token and updates the hash. The old link becomes invalid.
   const { token, tokenHash } = generateToken();
   await prisma.invitation.update({

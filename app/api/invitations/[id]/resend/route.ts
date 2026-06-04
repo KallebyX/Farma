@@ -33,7 +33,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     }
     if (err instanceof RateLimitError) {
       return NextResponse.json(
-        { ok: false, error: "Muitos reenvios — aguarde alguns instantes" },
+        { ok: false, error: "Muitos reenvios - aguarde alguns instantes" },
         { status: 429 },
       );
     }

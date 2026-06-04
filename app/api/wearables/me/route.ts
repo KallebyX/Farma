@@ -3,7 +3,7 @@ import { verifyPatientToken } from "@/lib/patient-token";
 import { connectionsFor, latestMetrics } from "@/lib/wearables/service";
 import { listProviders, oauthConfigured } from "@/lib/wearables/providers";
 
-/** GET /api/wearables/me?token=<patientToken> — connections + latest metrics. */
+/** GET /api/wearables/me?token=<patientToken> - connections + latest metrics. */
 export async function GET(req: Request) {
   const token = new URL(req.url).searchParams.get("token");
   const patientId = verifyPatientToken(token);

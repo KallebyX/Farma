@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 
 const select = { id: true, name: true, priceCents: true, stock: true, couponPct: true, active: true } as const;
 
-/** GET /api/products — this pharmacy's catalog. */
+/** GET /api/products - this pharmacy's catalog. */
 export async function GET() {
   try {
     const ctx = await requireSession();
@@ -17,7 +17,7 @@ export async function GET() {
   }
 }
 
-/** POST /api/products — add a catalog item. */
+/** POST /api/products - add a catalog item. */
 export async function POST(req: Request) {
   try {
     const ctx = await requireSession();
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   }
 }
 
-/** DELETE /api/products?id= — remove a catalog item (tenant-scoped). */
+/** DELETE /api/products?id= - remove a catalog item (tenant-scoped). */
 export async function DELETE(req: Request) {
   try {
     const ctx = await requireSession();

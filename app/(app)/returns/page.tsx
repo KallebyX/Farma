@@ -65,7 +65,7 @@ export default async function ReturnsPage() {
 
       <section className="mt-10">
         <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-slate-500 mb-3">
-          Perguntados — aguardando resposta ({asked.length})
+          Perguntados - aguardando resposta ({asked.length})
         </h2>
         {asked.length === 0 ? (
           <Card>

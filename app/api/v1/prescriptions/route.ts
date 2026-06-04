@@ -4,7 +4,7 @@ import { listForPatient } from "@/lib/rx";
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/v1/prescriptions — the authenticated patient's digital prescriptions. */
+/** GET /api/v1/prescriptions - the authenticated patient's digital prescriptions. */
 export async function GET(req: Request) {
   try {
     const p = await getPatientFromBearer(req);

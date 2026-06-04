@@ -249,7 +249,7 @@ export function Field({ label, hint, error, required, children }: {
       <span className="flex items-center gap-1.5 text-[12px] font-medium text-slate-700">
         {label}
         {required && <span className="text-rose-600">*</span>}
-        {hint && <span className="text-[11px] text-slate-400 font-normal">— {hint}</span>}
+        {hint && <span className="text-[11px] text-slate-400 font-normal">- {hint}</span>}
       </span>
       <div className="mt-1.5">{children}</div>
       {error && <p className="mt-1 text-[11.5px] text-rose-700">{error}</p>}

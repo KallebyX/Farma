@@ -83,7 +83,7 @@ export default async function CatalogPage({
                     {FORM_LABELS[m.form] ?? m.form.toLowerCase()}
                   </td>
                   <td className="px-4 py-3 text-slate-600 text-[13px] hidden lg:table-cell">
-                    {m.manufacturerName ?? "—"}
+                    {m.manufacturerName ?? "-"}
                   </td>
                 </tr>
               ))}

@@ -6,7 +6,7 @@ import type { TemplateKey } from "@/lib/whatsapp/client";
  * integrations (WhatsApp/Twilio, e-mail) be configured via the DB/MCP when
  * Vercel env vars aren't writable. Read by the WhatsApp/email clients and merged
  * OVER the env. Cached briefly to avoid a query per send. Secrets live only in
- * the private DB — never in the repo.
+ * the private DB - never in the repo.
  */
 export type IntegrationConfig = {
   whatsappProvider?: string | null;

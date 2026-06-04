@@ -1,7 +1,7 @@
 import { DosageForm } from "@prisma/client";
 
 /**
- * CMED ("Câmara de Regulação do Mercado de Medicamentos" — Anvisa) publishes
+ * CMED ("Câmara de Regulação do Mercado de Medicamentos" - Anvisa) publishes
  * a monthly XLS with every regulated medication in Brazil. This module turns
  * a raw row into a MedicationCatalog input.
  *
@@ -31,7 +31,7 @@ const FORM_PATTERNS: Array<[RegExp, DosageForm]> = [
   [/\b(SOL\s*INJ|PO\s*LIOF\s*INJ|PO\s*INJ|SOL\s*DIL\s*INJ|INJ)\b/, DosageForm.INJECTION],
   // Bare "COM" requires lookahead to a packaging/count token so we don't
   // match the Portuguese preposition in strings like "CONJUNTO COM
-  // ACESSORIOS" — those should fall through to OTHER.
+  // ACESSORIOS" - those should fall through to OTHER.
   [/\b(COM\s+EFERV|COM\s+SUB|COM\s+REV(?:\s+LIB)?|COM\s+MAST|COM(?=\s+(?:CT|BL|FR|VD|AMP|X|REV|EFERV|MAST)\b)|DRG|DRAG|COMP|COMPRIMIDO)\b/, DosageForm.TABLET],
   [/\b(CAP\s*DURA|CAP\s*MOLE|CAPS?|CAPSULA)\b/, DosageForm.CAPSULE],
   [/\b(SOL\s*ORAL|SUS\s*ORAL|XAR(?:OPE)?|SUSP|EMU|SOL\s*OFT|SOL\s*OTOL|SOL\s*TOP|ELIXIR|SOLUCAO)\b/, DosageForm.LIQUID],
@@ -72,7 +72,7 @@ const onlyDigits = (s: string) => s.replace(/\D/g, "");
 
 function pickPmcMax(row: CmedRow): number | null {
   // PMC columns vary by tax rate ("PMC 0%", "PMC 12%", ..., "PMC 22% ALC"). We
-  // pick the highest one that's a valid number — the consumer-facing ceiling.
+  // pick the highest one that's a valid number - the consumer-facing ceiling.
   let max: number | null = null;
   for (const [key, value] of Object.entries(row)) {
     if (!key.toUpperCase().startsWith("PMC")) continue;
@@ -114,7 +114,7 @@ function getStr(row: CmedRow, key: string): string | null {
 /**
  * Map a raw CMED row to our MedicationCatalog shape. Returns null when the
  * row is missing the regulatory key (CÓDIGO GGREM) or essential identity
- * fields — those rows are "empty"/header continuation in the CMED file.
+ * fields - those rows are "empty"/header continuation in the CMED file.
  */
 export function mapCmedRow(row: CmedRow): ParsedCmedEntry | null {
   const ggrem = getStr(row, "CÓDIGO GGREM") ?? getStr(row, "CODIGO GGREM");

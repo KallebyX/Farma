@@ -4,7 +4,7 @@ import { UnauthorizedError } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db";
 import { signedDownloadUrl } from "@/lib/storage";
 
-/** GET /api/exams/[id]/download — 302 to a short-lived signed URL (staff, tenant-scoped). */
+/** GET /api/exams/[id]/download - 302 to a short-lived signed URL (staff, tenant-scoped). */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const ctx = await requireSession();

@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { verifyPatientToken } from "@/lib/patient-token";
 import { listForPatient } from "@/lib/appointments";
 
-/** GET /api/patient/appointments — the patient's own appointments (hub token). */
+/** GET /api/patient/appointments - the patient's own appointments (hub token). */
 export async function GET(req: Request) {
   try {
     const auth = req.headers.get("authorization");

@@ -4,7 +4,7 @@ import { UnauthorizedError } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db";
 import { signedDownloadUrl } from "@/lib/storage";
 
-/** GET /api/rx/[id]/download — staff opens a prescription file via signed URL. */
+/** GET /api/rx/[id]/download - staff opens a prescription file via signed URL. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const ctx = await requireSession();

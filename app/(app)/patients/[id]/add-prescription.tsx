@@ -52,7 +52,7 @@ export function AddPrescription({ patientId }: { patientId: string }) {
 
   async function startScan(mode: "caixa" | "receita") {
     const Ctor = (window as unknown as { BarcodeDetector?: new (o: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector;
-    if (!Ctor || !navigator.mediaDevices?.getUserMedia) { setError("Câmera/leitor indisponível — preencha manualmente"); return; }
+    if (!Ctor || !navigator.mediaDevices?.getUserMedia) { setError("Câmera/leitor indisponível - preencha manualmente"); return; }
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
@@ -83,7 +83,7 @@ export function AddPrescription({ patientId }: { patientId: string }) {
       const { lote, validade } = parseGs1(raw);
       if (lote) setBatchLot(lote);
       if (validade) setExpiryDate(validade);
-      if (!lote && !validade) setError("Não reconheci lote/validade — preencha manualmente");
+      if (!lote && !validade) setError("Não reconheci lote/validade - preencha manualmente");
     } else {
       setPrescriptionRef(raw.slice(0, 200));
     }

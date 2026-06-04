@@ -74,7 +74,7 @@ export default function InviteEmail({
           </Text>
           <Text style={muted}>
             Por que estou recebendo isso? Você foi convidado a colaborar na plataforma da{" "}
-            {pharmacyName}. Seus dados serão tratados conforme a LGPD — você verá os termos antes
+            {pharmacyName}. Seus dados serão tratados conforme a LGPD - você verá os termos antes
             de criar sua conta.
           </Text>
         </Container>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyPatientToken } from "@/lib/patient-token";
 import { redeemReward } from "@/lib/loyalty/service";
 
-/** POST /api/loyalty/redeem { token, code } — redeems a reward for the patient. */
+/** POST /api/loyalty/redeem { token, code } - redeems a reward for the patient. */
 export async function POST(req: Request) {
   let body: { token?: string; code?: string };
   try {

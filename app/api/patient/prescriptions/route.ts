@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { resolvePatientFromRequest } from "@/lib/patient-session";
 import { createPrescriptionFromFile, listForPatient } from "@/lib/rx";
 
-/** GET /api/patient/prescriptions — patient's own digital prescriptions. */
+/** GET /api/patient/prescriptions - patient's own digital prescriptions. */
 export async function GET(req: Request) {
   try {
     const p = await resolvePatientFromRequest(req);
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   }
 }
 
-/** POST /api/patient/prescriptions — patient uploads a (possibly signed) prescription. */
+/** POST /api/patient/prescriptions - patient uploads a (possibly signed) prescription. */
 export async function POST(req: Request) {
   try {
     const p = await resolvePatientFromRequest(req);

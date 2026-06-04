@@ -66,7 +66,7 @@ export default async function AfiliadosPage() {
             {conversions.map((c) => (
               <div key={c.id} className="flex items-center justify-between rounded-lg border border-slate-100 px-3.5 py-2.5">
                 <div className="min-w-0">
-                  <p className="text-[13.5px] font-medium text-slate-800 truncate">{c.partner.name} · {c.patient?.name ?? "—"}</p>
+                  <p className="text-[13.5px] font-medium text-slate-800 truncate">{c.partner.name} · {c.patient?.name ?? "-"}</p>
                   <p className="text-[12px] text-slate-500">{c.createdAt.toLocaleDateString("pt-BR")} · {brl(c.amountCents)}</p>
                 </div>
                 <Badge tone={CONV_TONE[c.status]} dot className="shrink-0">{CONV_LABEL[c.status]}</Badge>

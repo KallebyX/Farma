@@ -46,7 +46,7 @@ export async function recordReferral(args: { referredId: string; referrerId: str
   try {
     await prisma.referral.create({ data: { referredId: args.referredId, referrerId: args.referrerId, pharmacyId: args.pharmacyId, pointsAwarded: ph.referralPoints } });
   } catch (e) {
-    if ((e as { code?: string })?.code === "P2002") return; // raced — already recorded
+    if ((e as { code?: string })?.code === "P2002") return; // raced - already recorded
     throw e;
   }
   await awardPoints({ patientId: args.referrerId, delta: ph.referralPoints, reason: "referral", refType: "referral", refId: args.referredId });

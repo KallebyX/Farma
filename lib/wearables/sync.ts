@@ -8,7 +8,7 @@ import { ingestSamples, type IncomingSample } from "./service";
  *
  * A cron worker (/api/cron/sync-wearables) periodically pulls fresh samples for
  * every CONNECTED oauth connection. Ingest providers (Apple/Samsung/Garmin) are
- * never touched here — those push to /api/wearables/ingest.
+ * never touched here - those push to /api/wearables/ingest.
  *
  * Flow per connection:
  *   1. refresh the access token if it is missing or near expiry

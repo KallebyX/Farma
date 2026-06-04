@@ -3,7 +3,7 @@ import { getIntegrationConfig } from "@/lib/integration-config";
 
 /**
  * Supabase Storage access via the REST API (no SDK dependency). Files are
- * uploaded server-side using the service-role key, which bypasses storage RLS —
+ * uploaded server-side using the service-role key, which bypasses storage RLS -
  * so the bucket stays private and every read goes through a short-lived signed
  * URL minted by our own authorization checks.
  *

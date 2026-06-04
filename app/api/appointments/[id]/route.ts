@@ -3,7 +3,7 @@ import { requireSession } from "@/lib/auth/session";
 import { UnauthorizedError } from "@/lib/auth/permissions";
 import { updateAppointment } from "@/lib/appointments";
 
-/** PATCH /api/appointments/[id] { status?, notes? } — staff updates (tenant-scoped). */
+/** PATCH /api/appointments/[id] { status?, notes? } - staff updates (tenant-scoped). */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const ctx = await requireSession();

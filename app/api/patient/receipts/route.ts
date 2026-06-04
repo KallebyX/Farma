@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { resolvePatientFromRequest } from "@/lib/patient-session";
 import { registerReceipt, listReceipts } from "@/lib/receipts";
 
-/** GET /api/patient/receipts — notas registradas pelo paciente. */
+/** GET /api/patient/receipts - notas registradas pelo paciente. */
 export async function GET(req: Request) {
   try {
     const p = await resolvePatientFromRequest(req);
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   }
 }
 
-/** POST /api/patient/receipts { code } — registra a nota fiscal (QR) e credita pontos. */
+/** POST /api/patient/receipts { code } - registra a nota fiscal (QR) e credita pontos. */
 export async function POST(req: Request) {
   try {
     const p = await resolvePatientFromRequest(req);

@@ -3,16 +3,16 @@
  *
  * Three responsibilities, all idempotent:
  *
- * 1) materializeReturnExpectations — for every active prescription with a
+ * 1) materializeReturnExpectations - for every active prescription with a
  *    quantityDispensed, compute the estimated stock end date and ensure a
  *    ReturnExpectation row exists. Skips if one already exists in
  *    SCHEDULED/ASKED state.
  *
- * 2) askDueReturns — for every SCHEDULED expectation whose
+ * 2) askDueReturns - for every SCHEDULED expectation whose
  *    `expectedAt + graceDays` has elapsed, send the WhatsApp prompt and
  *    transition to ASKED.
  *
- * 3) expireStaleReturns — ASKED expectations with no response after 14 days
+ * 3) expireStaleReturns - ASKED expectations with no response after 14 days
  *    are marked EXPIRED.
  */
 
@@ -74,7 +74,7 @@ export async function materializeReturnExpectations(now: Date = new Date()): Pro
     if (!expectedAt) continue;
 
     // Don't materialize for prescriptions already past their expected refill
-    // window by more than 30 days — likely stale data, surface manually.
+    // window by more than 30 days - likely stale data, surface manually.
     const ageMs = now.getTime() - expectedAt.getTime();
     if (ageMs > 30 * 24 * 60 * 60 * 1000) continue;
 

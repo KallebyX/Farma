@@ -66,7 +66,7 @@ export async function createPatient(ctx: SessionContext, input: CreatePatientInp
     throw error;
   }
 
-  // Kick off the WhatsApp consent request. We don't await on failure — we
+  // Kick off the WhatsApp consent request. We don't await on failure - we
   // record patient regardless so the panel reflects the registration.
   await sendWhatsApp(
     consentRequest({

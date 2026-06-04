@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { searchPharmacies } from "@/lib/patient-register";
 
-/** GET /api/pharmacies/search?q= — public list of pharmacies for patient signup. */
+/** GET /api/pharmacies/search?q= - public list of pharmacies for patient signup. */
 export async function GET(req: Request) {
   const q = new URL(req.url).searchParams.get("q") ?? "";
   const pharmacies = await searchPharmacies(q);

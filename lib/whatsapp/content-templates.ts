@@ -4,7 +4,7 @@ import type { TemplateKey } from "@/lib/whatsapp/client";
  * Catalog of the WhatsApp Content templates this app sends. Each logical key
  * maps to one approved Twilio Content template. The app sends the fully rendered
  * message text as the single body variable {{1}}, so every template only needs a
- * `{{1}}` placeholder in its body — this keeps approval simple while letting each
+ * `{{1}}` placeholder in its body - this keeps approval simple while letting each
  * message type route to the correct WhatsApp category (authentication vs utility).
  *
  * To activate: create these in Twilio Content Template Builder, submit for

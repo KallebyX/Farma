@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 /**
  * Stateless, signed patient access tokens for the engagement hub.
  *
- * Patients don't have passwords — they receive a magic hub link (via WhatsApp)
+ * Patients don't have passwords - they receive a magic hub link (via WhatsApp)
  * containing an HMAC-signed token that identifies their patient record. Tokens
  * are URL-safe and carry an expiry. This is the patient-side "login".
  */

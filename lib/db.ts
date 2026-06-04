@@ -13,7 +13,7 @@ const log = process.env.NODE_ENV === "development" ? (["error", "warn"] as const
  * Normalizes the connection string for serverless. Supabase's Vercel
  * integration often sets `connection_limit=1`, which makes the ~15 parallel
  * queries a single dashboard render fires serialize over one connection and
- * blow the 10s pool timeout (P2024) — especially with the DB cross-region from
+ * blow the 10s pool timeout (P2024) - especially with the DB cross-region from
  * the function. We raise the per-instance pool, extend the pool timeout, and
  * enable pgbouncer mode when pointing at Supabase's transaction pooler (:6543).
  * Overridable via PRISMA_CONNECTION_LIMIT.
@@ -28,7 +28,7 @@ function tunePoolUrl(raw: string | undefined): string | undefined {
     if (u.port === "6543" && !u.searchParams.has("pgbouncer")) u.searchParams.set("pgbouncer", "true");
     return u.toString();
   } catch {
-    return raw; // not a parseable URL (e.g. unset) — leave as-is
+    return raw; // not a parseable URL (e.g. unset) - leave as-is
   }
 }
 
@@ -40,7 +40,7 @@ function makeClient(url: string | undefined): PrismaClient {
 }
 
 /**
- * Base client — connects with the privileged role (DATABASE_URL). Used for
+ * Base client - connects with the privileged role (DATABASE_URL). Used for
  * cross-tenant work that must not be constrained by row-level security:
  * authentication/session resolution, tenant onboarding, invitation acceptance,
  * WhatsApp inbound routing, and the cron jobs.
@@ -48,7 +48,7 @@ function makeClient(url: string | undefined): PrismaClient {
 export const prisma = global.prisma ?? makeClient(process.env.DATABASE_URL);
 
 /**
- * Optional least-privilege client — connects with the `farma_app` role via
+ * Optional least-privilege client - connects with the `farma_app` role via
  * DATABASE_URL_APP (NOBYPASSRLS). Only created when that env var is present, so
  * the app keeps working on the privileged connection until RLS is activated.
  */

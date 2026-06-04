@@ -125,7 +125,7 @@ export default async function TeamPage() {
                         {inv.deliveries.slice(0, 3).map((d) => (
                           <li key={d.id}>
                             {channelLabel(d.channel)} · {d.status}
-                            {d.error ? ` — ${d.error}` : ""}
+                            {d.error ? ` - ${d.error}` : ""}
                           </li>
                         ))}
                       </ul>

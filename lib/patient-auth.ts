@@ -40,10 +40,10 @@ export async function requestPatientCode(phone: string): Promise<{ sent: boolean
     // for non-template providers (Z-API/mock) and the 24h-session Body path.
     template: { key: "otp", variables: { "1": code } },
   });
-  // Observability: the OTP is the patient's only way in — log the outcome so a
+  // Observability: the OTP is the patient's only way in - log the outcome so a
   // delivery failure (provider/template) is visible in prod logs.
   // eslint-disable-next-line no-console
-  console.log(`[otp] send result for ${phone}: ${res.status}${res.error ? ` — ${res.error}` : ""}${res.providerId ? ` (${res.providerId})` : ""}`);
+  console.log(`[otp] send result for ${phone}: ${res.status}${res.error ? ` - ${res.error}` : ""}${res.providerId ? ` (${res.providerId})` : ""}`);
   return { sent: true };
 }
 
@@ -54,7 +54,7 @@ export async function verifyPatientCode(phone: string, code: string): Promise<{ 
     orderBy: { createdAt: "desc" },
   });
   if (!rec) return { ok: false, error: "Código inválido ou expirado" };
-  if (rec.attempts >= MAX_ATTEMPTS) return { ok: false, error: "Muitas tentativas — solicite um novo código" };
+  if (rec.attempts >= MAX_ATTEMPTS) return { ok: false, error: "Muitas tentativas - solicite um novo código" };
 
   if (!safeEq(rec.codeHash, sha256(code))) {
     await prisma.patientLoginCode.update({ where: { id: rec.id }, data: { attempts: rec.attempts + 1 } });

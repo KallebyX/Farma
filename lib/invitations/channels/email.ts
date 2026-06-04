@@ -21,7 +21,7 @@ type EmailParams = {
 };
 
 export async function sendInviteEmail(params: EmailParams): Promise<EmailDeliveryResult> {
-  // Config from the DB (IntegrationConfig, set via MCP) OVER env — lets e-mail be
+  // Config from the DB (IntegrationConfig, set via MCP) OVER env - lets e-mail be
   // activated without Vercel env vars (same pattern as WhatsApp/storage).
   const cfg = await getIntegrationConfig();
   const apiKey = cfg.resendApiKey ?? process.env.RESEND_API_KEY;

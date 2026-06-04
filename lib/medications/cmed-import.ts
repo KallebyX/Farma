@@ -73,7 +73,7 @@ export function parseCsv(text: string, sep = ";"): string[][] {
         rows.push(row);
         row = [];
       } else if (c === "\r") {
-        // skip — CRLF handled on \n
+        // skip - CRLF handled on \n
       } else {
         field += c;
       }
@@ -142,7 +142,7 @@ export async function upsertCmedEntries(
     await prisma.$transaction(
       async (tx) => {
         for (const entry of chunk) {
-          // pmcMax is Decimal? — Prisma accepts string for Decimal inputs and
+          // pmcMax is Decimal? - Prisma accepts string for Decimal inputs and
           // sidesteps the tuple-vs-array overload friction we'd hit if we
           // passed `prisma.medicationCatalog.upsert(...)` calls inside an
           // array to $transaction.

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { resolvePatientFromRequest } from "@/lib/patient-session";
 import { referralStats } from "@/lib/referral";
 
-/** GET /api/patient/referral — the patient's referral code, link and earnings. */
+/** GET /api/patient/referral - the patient's referral code, link and earnings. */
 export async function GET(req: Request) {
   try {
     const p = await resolvePatientFromRequest(req);

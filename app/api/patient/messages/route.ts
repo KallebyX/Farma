@@ -13,7 +13,7 @@ async function resolvePatient(req: Request): Promise<{ id: string; pharmacyId: s
   return prisma.patient.findUnique({ where: { id: patientId }, select: { id: true, pharmacyId: true } });
 }
 
-/** GET /api/patient/messages — the patient's thread (and mark pharmacy msgs read). */
+/** GET /api/patient/messages - the patient's thread (and mark pharmacy msgs read). */
 export async function GET(req: Request) {
   try {
     const p = await resolvePatient(req);
@@ -26,7 +26,7 @@ export async function GET(req: Request) {
   }
 }
 
-/** POST /api/patient/messages { body } — patient sends a message to the pharmacy. */
+/** POST /api/patient/messages { body } - patient sends a message to the pharmacy. */
 export async function POST(req: Request) {
   try {
     const p = await resolvePatient(req);

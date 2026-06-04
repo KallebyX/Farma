@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { searchNearby } from "@/lib/compare";
 
-/** GET /api/compare?term=&lat=&lng= — public price/stock comparator across pharmacies. */
+/** GET /api/compare?term=&lat=&lng= - public price/stock comparator across pharmacies. */
 export async function GET(req: Request) {
   const u = new URL(req.url);
   const term = u.searchParams.get("term") ?? "";

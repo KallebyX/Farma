@@ -4,7 +4,7 @@ import { ok, fail, preflight } from "@/lib/api/v1/respond";
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/v1/me — the authenticated patient's own profile. */
+/** GET /api/v1/me - the authenticated patient's own profile. */
 export async function GET(req: Request) {
   try {
     const p = await getPatientFromBearer(req);
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   }
 }
 
-/** PATCH /api/v1/me — patient edits whitelisted profile fields. */
+/** PATCH /api/v1/me - patient edits whitelisted profile fields. */
 export async function PATCH(req: Request) {
   try {
     const p = await getPatientFromBearer(req);

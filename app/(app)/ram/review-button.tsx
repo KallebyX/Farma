@@ -123,7 +123,7 @@ export function ReviewRamButton({ ramId }: { ramId: string }) {
                     className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-500"
                   />
                   <span>
-                    Encaminhar para o VigiMed (Anvisa) — gera protocolo simulado nessa versão; a
+                    Encaminhar para o VigiMed (Anvisa) - gera protocolo simulado nessa versão; a
                     integração real precisa de credenciais do VigiMed.
                   </span>
                 </label>

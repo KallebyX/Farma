@@ -14,7 +14,7 @@ async function resolvePatient(req: Request): Promise<{ id: string; pharmacyId: s
   return prisma.patient.findUnique({ where: { id: patientId }, select: { id: true, pharmacyId: true } });
 }
 
-/** GET /api/patient/exams — the patient's own exams. */
+/** GET /api/patient/exams - the patient's own exams. */
 export async function GET(req: Request) {
   try {
     const p = await resolvePatient(req);
@@ -26,7 +26,7 @@ export async function GET(req: Request) {
   }
 }
 
-/** POST /api/patient/exams — patient uploads an exam to share with the pharmacy. */
+/** POST /api/patient/exams - patient uploads an exam to share with the pharmacy. */
 export async function POST(req: Request) {
   try {
     const p = await resolvePatient(req);

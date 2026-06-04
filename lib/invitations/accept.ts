@@ -36,7 +36,7 @@ export async function loadInviteForAcceptance(token: string): Promise<InviteSumm
     throw new InvalidInviteError("Esse convite foi revogado pelo administrador");
   }
   if (invitation.status === InvitationStatus.EXPIRED || invitation.expiresAt.getTime() < Date.now()) {
-    throw new InvalidInviteError("Esse convite expirou — peça um novo ao administrador");
+    throw new InvalidInviteError("Esse convite expirou - peça um novo ao administrador");
   }
 
   const existingUser = await prisma.user.findUnique({ where: { email: invitation.email } });

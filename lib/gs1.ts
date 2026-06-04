@@ -1,6 +1,6 @@
 /**
  * Minimal GS1 parser for the DataMatrix/QR on a medicine box (caixa de remédio).
- * Extracts AI 10 (lote) and AI 17 (validade, YYMMDD). Heuristic — the pharmacist
+ * Extracts AI 10 (lote) and AI 17 (validade, YYMMDD). Heuristic - the pharmacist
  * confirms/edits the values. Handles the optional symbology prefix and FNC1 (\x1d).
  */
 export function parseGs1(raw: string): { lote?: string; validade?: string } {

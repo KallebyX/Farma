@@ -108,7 +108,7 @@ export function NewPatientForm() {
         </Field>
         <Field label="Sexo (opcional)" error={errors.sex}>
           <Select name="sex" defaultValue="">
-            <option value="">—</option>
+            <option value="">-</option>
             <option value="F">Feminino</option>
             <option value="M">Masculino</option>
             <option value="O">Outro</option>

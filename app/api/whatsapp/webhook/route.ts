@@ -3,7 +3,7 @@ import { handleInbound } from "@/lib/whatsapp/handle";
 
 /**
  * WhatsApp inbound webhook (Z-API or Meta Cloud API). Both providers have
- * different payloads — we accept a permissive shape and pull the fields we
+ * different payloads - we accept a permissive shape and pull the fields we
  * need. If the secret is configured, validates a shared header.
  */
 export async function POST(req: Request) {

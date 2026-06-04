@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { listForPatient, createAppointment } from "@/lib/appointments";
 import { sendWhatsApp } from "@/lib/whatsapp/client";
 
-/** GET /api/patients/[id]/appointments — staff list (tenant-scoped). */
+/** GET /api/patients/[id]/appointments - staff list (tenant-scoped). */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const ctx = await requireSession();
@@ -20,7 +20,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
 }
 
-/** POST /api/patients/[id]/appointments — staff schedules; nudges patient on WhatsApp. */
+/** POST /api/patients/[id]/appointments - staff schedules; nudges patient on WhatsApp. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const ctx = await requireSession();
