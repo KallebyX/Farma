@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyPatientToken } from "@/lib/patient-token";
 import { completeMission } from "@/lib/loyalty/service";
 
-/** POST /api/loyalty/mission { token, code } — completes a mission for the patient. */
+/** POST /api/loyalty/mission { token, code } - completes a mission for the patient. */
 export async function POST(req: Request) {
   let body: { token?: string; code?: string };
   try {

@@ -3,7 +3,7 @@ import { ensureDemoPatient } from "@/lib/demo";
 import { signPatientToken } from "@/lib/patient-token";
 
 /**
- * DEMO — Meu Prontuário. Instead of a static mockup, this provisions a real demo
+ * DEMO - Meu Prontuário. Instead of a static mockup, this provisions a real demo
  * patient (idempotent) and redirects into the ACTUAL patient hub, so the demo
  * behaves exactly like production (real APIs, gamification, multi-pharmacy, etc.).
  */

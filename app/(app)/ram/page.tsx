@@ -115,7 +115,7 @@ export default async function RamInboxPage() {
                   </div>
                   <span className="text-[12px] text-slate-500 shrink-0">
                     {r.status === "FORWARDED_VIGIMED" ? "encaminhado" : "revisado"} por{" "}
-                    {r.reviewedBy?.name ?? "—"}
+                    {r.reviewedBy?.name ?? "-"}
                   </span>
                 </div>
               </Card>

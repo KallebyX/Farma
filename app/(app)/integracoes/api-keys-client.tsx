@@ -62,7 +62,7 @@ export function ApiKeysPanel({ initialKeys, canCreate }: { initialKeys: KeyRow[]
 
       {issued && (
         <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-          <p className="text-[12px] font-semibold text-emerald-800">✓ Chave criada — copie agora, não será exibida novamente:</p>
+          <p className="text-[12px] font-semibold text-emerald-800">✓ Chave criada - copie agora, não será exibida novamente:</p>
           <div className="mt-2 flex items-center gap-2">
             <code className="flex-1 overflow-x-auto rounded-md bg-white px-3 py-2 text-[12.5px] font-mono text-slate-800 border border-emerald-200">{issued}</code>
             <Button size="sm" variant="success" icon={<Icon.Copy size={14} />} onClick={copy}>{copied ? "Copiado!" : "Copiar"}</Button>

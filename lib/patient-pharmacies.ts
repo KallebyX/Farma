@@ -6,7 +6,7 @@ import { ensureAccountForPatient } from "@/lib/patient-account";
  *
  * Interim model: a patient's identity is their phone number. "Linking" a pharmacy
  * means there's a Patient row for that phone in that pharmacy. This lets a patient
- * connect to several pharmacies and see a usage ranking — without the full
+ * connect to several pharmacies and see a usage ranking - without the full
  * PatientAccount/M2M refactor (PRD Phase 1), which will later unify these rows.
  */
 

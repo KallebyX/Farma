@@ -1,6 +1,6 @@
 /**
  * Inbound message router. Parses an incoming WhatsApp message into a typed
- * intent. Pure module — no DB calls, easy to unit test.
+ * intent. Pure module - no DB calls, easy to unit test.
  */
 
 export type Intent =

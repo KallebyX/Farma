@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { resolvePatientFromRequest } from "@/lib/patient-session";
 import { listPatientPharmacies, linkPatientToPharmacy, unlinkPatientFromPharmacy } from "@/lib/patient-pharmacies";
 
-/** GET /api/patient/pharmacies — pharmacies the patient is linked to (ranked by usage). */
+/** GET /api/patient/pharmacies - pharmacies the patient is linked to (ranked by usage). */
 export async function GET(req: Request) {
   try {
     const p = await resolvePatientFromRequest(req);
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   }
 }
 
-/** POST /api/patient/pharmacies { pharmacyId } — link the patient to another pharmacy. */
+/** POST /api/patient/pharmacies { pharmacyId } - link the patient to another pharmacy. */
 export async function POST(req: Request) {
   try {
     const p = await resolvePatientFromRequest(req);
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   }
 }
 
-/** DELETE /api/patient/pharmacies?patientId=… — unlink a pharmacy (not the current one). */
+/** DELETE /api/patient/pharmacies?patientId=… - unlink a pharmacy (not the current one). */
 export async function DELETE(req: Request) {
   try {
     const p = await resolvePatientFromRequest(req);

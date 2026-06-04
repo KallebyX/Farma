@@ -7,9 +7,9 @@ import { Readable } from "node:stream";
 // every datacenter IP we can reach (Vercel/AWS, GitHub Actions/Azure,
 // even WebFetch sandbox), so we fall through a chain of mirrors:
 //   1. Anvisa direct (works from residential IPs only)
-//   2. Wayback Machine cached snapshot — Cloudflare-fronted, always
+//   2. Wayback Machine cached snapshot - Cloudflare-fronted, always
 //      reachable, content as-served at snapshot time
-//   3. dados.gov.br CKAN — Brazilian central open-data portal that
+//   3. dados.gov.br CKAN - Brazilian central open-data portal that
 //      sometimes mirrors the file
 // First one to return a CSV-shaped body (>= 100 KB, plenty of ;) wins.
 
@@ -22,7 +22,7 @@ const ANVISA_URL =
 
 const SOURCE_URLS = [
   ANVISA_URL,
-  // Wayback Machine — `web/2*/<url>` returns latest snapshot, served
+  // Wayback Machine - `web/2*/<url>` returns latest snapshot, served
   // through Cloudflare regardless of upstream availability.
   `https://web.archive.org/web/2024/${ANVISA_URL}`,
   `https://web.archive.org/web/${ANVISA_URL}`,

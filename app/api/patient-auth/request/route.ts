@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requestPatientCode, isValidPhone } from "@/lib/patient-auth";
 import { patientOtpRateLimit } from "@/lib/rate-limit";
 
-/** POST /api/patient-auth/request { phone } — sends a WhatsApp OTP. */
+/** POST /api/patient-auth/request { phone } - sends a WhatsApp OTP. */
 export async function POST(req: Request) {
   let body: { phone?: string };
   try {
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   const rl = await patientOtpRateLimit.limit(`otp:${phone}:${ip}`);
   if (!rl.success) {
-    return NextResponse.json({ ok: false, error: "Muitas solicitações — aguarde um minuto" }, { status: 429 });
+    return NextResponse.json({ ok: false, error: "Muitas solicitações - aguarde um minuto" }, { status: 429 });
   }
 
   await requestPatientCode(phone);

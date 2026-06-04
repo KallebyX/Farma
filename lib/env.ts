@@ -56,12 +56,12 @@ export function checkEnv(env: NodeJS.ProcessEnv = process.env): CheckResult {
   // Warn about production-only concerns
   const isProd = env.NODE_ENV === "production" || env.VERCEL_ENV === "production";
   if (isProd) {
-    if (!env.RESEND_API_KEY) warnings.push("RESEND_API_KEY ausente — convites por email não serão enviados");
-    if (!env.CRON_SECRET) warnings.push("CRON_SECRET ausente — endpoints de cron estão sem autenticação");
-    if (!env.WHATSAPP_API_KEY) warnings.push("WHATSAPP_API_KEY ausente — WhatsApp em modo mock");
-    if (!env.UPSTASH_REDIS_REST_URL) warnings.push("UPSTASH_REDIS_REST_URL ausente — rate limit é in-memory (não funciona em multi-instância)");
+    if (!env.RESEND_API_KEY) warnings.push("RESEND_API_KEY ausente - convites por email não serão enviados");
+    if (!env.CRON_SECRET) warnings.push("CRON_SECRET ausente - endpoints de cron estão sem autenticação");
+    if (!env.WHATSAPP_API_KEY) warnings.push("WHATSAPP_API_KEY ausente - WhatsApp em modo mock");
+    if (!env.UPSTASH_REDIS_REST_URL) warnings.push("UPSTASH_REDIS_REST_URL ausente - rate limit é in-memory (não funciona em multi-instância)");
     if (env.NEXTAUTH_URL?.startsWith("http://") && !env.NEXTAUTH_URL.includes("localhost")) {
-      warnings.push("NEXTAUTH_URL usa http:// — produção deve usar https://");
+      warnings.push("NEXTAUTH_URL usa http:// - produção deve usar https://");
     }
   }
 

@@ -5,7 +5,7 @@ import { resolvePatientFromRequest } from "@/lib/patient-session";
 
 const VALID = new Set(Object.values(RAMSeverity));
 
-/** POST /api/patient/ram — patient reports an adverse drug reaction (→ staff inbox). */
+/** POST /api/patient/ram - patient reports an adverse drug reaction (→ staff inbox). */
 export async function POST(req: Request) {
   try {
     const p = await resolvePatientFromRequest(req);

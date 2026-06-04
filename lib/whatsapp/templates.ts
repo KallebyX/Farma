@@ -24,7 +24,7 @@ export function consentConfirmation(args: { phone: string; patientName: string }
   return {
     kind: "text",
     phone: args.phone,
-    text: `Perfeito, ${firstName(args.patientName)}! Seu cadastro está ativo. ✅\n\nA partir de agora vou te lembrar dos seus remédios. Comandos disponíveis:\n• /meusremedios — ver lista\n• /pausar — pausar lembretes\n• /reacao — relatar reação adversa\n• /sair — encerrar`,
+    text: `Perfeito, ${firstName(args.patientName)}! Seu cadastro está ativo. ✅\n\nA partir de agora vou te lembrar dos seus remédios. Comandos disponíveis:\n• /meusremedios - ver lista\n• /pausar - pausar lembretes\n• /reacao - relatar reação adversa\n• /sair - encerrar`,
   };
 }
 
@@ -47,7 +47,7 @@ export function reminderMessage(args: {
   return {
     kind: "buttons",
     phone: args.phone,
-    text: `🔔 Hora do remédio, ${firstName(args.patientName)}!\n\n💊 *${args.medicationLabel}* — ${args.doseAmount}\n🕐 ${HHmm.format(args.scheduledFor)}`,
+    text: `🔔 Hora do remédio, ${firstName(args.patientName)}!\n\n💊 *${args.medicationLabel}* - ${args.doseAmount}\n🕐 ${HHmm.format(args.scheduledFor)}`,
     buttons: [
       { id: `r:${args.reminderId}:taken`, label: "✅ Tomei" },
       { id: `r:${args.reminderId}:defer`, label: "⏰ Adiar 30min" },
@@ -112,7 +112,7 @@ export function ramAcknowledgement(args: { phone: string }): WhatsAppOutbound {
   return {
     kind: "text",
     phone: args.phone,
-    text: "Obrigado por relatar — isso é muito importante. O farmacêutico responsável vai revisar seu caso. Se tiver dúvidas, ele entrará em contato.\n\n💡 Se piorar, procure atendimento médico imediatamente.",
+    text: "Obrigado por relatar - isso é muito importante. O farmacêutico responsável vai revisar seu caso. Se tiver dúvidas, ele entrará em contato.\n\n💡 Se piorar, procure atendimento médico imediatamente.",
   };
 }
 
@@ -128,7 +128,7 @@ export function meusRemediosList(args: {
     };
   }
   const lines = args.prescriptions
-    .map((p, i) => `${i + 1}. *${p.medicationLabel}* — ${summarizePosology(p.posology)}`)
+    .map((p, i) => `${i + 1}. *${p.medicationLabel}* - ${summarizePosology(p.posology)}`)
     .join("\n");
   return {
     kind: "text",

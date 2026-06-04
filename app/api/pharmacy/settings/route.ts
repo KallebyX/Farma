@@ -9,7 +9,7 @@ const select = {
   latitude: true, longitude: true, referralEnabled: true, referralPoints: true,
 } as const;
 
-/** GET /api/pharmacy/settings — current pharmacy configuration. */
+/** GET /api/pharmacy/settings - current pharmacy configuration. */
 export async function GET() {
   try {
     const ctx = await requireSession();
@@ -21,7 +21,7 @@ export async function GET() {
   }
 }
 
-/** PATCH /api/pharmacy/settings — OWNER updates location, chain and referral config. */
+/** PATCH /api/pharmacy/settings - OWNER updates location, chain and referral config. */
 export async function PATCH(req: Request) {
   try {
     const ctx = await requireSession();

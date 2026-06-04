@@ -90,7 +90,7 @@ function errorResponse(err: unknown) {
   }
   if (err instanceof RateLimitError) {
     return NextResponse.json(
-      { ok: false, error: "Muitos convites — aguarde alguns instantes" },
+      { ok: false, error: "Muitos convites - aguarde alguns instantes" },
       { status: 429 },
     );
   }

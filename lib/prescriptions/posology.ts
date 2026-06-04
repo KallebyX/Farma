@@ -24,7 +24,7 @@ export function parseHHmm(s: string): { hour: number; minute: number } {
 /**
  * Computes all reminder occurrences in [from, to) for a prescription.
  * Two posology modes:
- *   1) fixedTimes: array of "HH:mm" — emits a reminder at each time on each day
+ *   1) fixedTimes: array of "HH:mm" - emits a reminder at each time on each day
  *      between max(startDate, from) and min(endDate, to).
  *   2) intervalHours: starting at startDate, emits every N hours up to endDate.
  *
@@ -144,7 +144,7 @@ export function summarizePosology(
   if (posology.durationDays) parts.push(`por ${posology.durationDays} dias`);
   else if (!posology.endDate) parts.push("(uso contínuo)");
 
-  if (posology.instructions) parts.push(`— ${posology.instructions}`);
+  if (posology.instructions) parts.push(`- ${posology.instructions}`);
 
   return parts.join(" ");
 }

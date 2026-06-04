@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { emitWebhook } from "@/lib/webhooks/dispatch";
 
 /**
- * Partner Data API v1 — lets a pharmacy integrate its own system.
+ * Partner Data API v1 - lets a pharmacy integrate its own system.
  * Auth: Bearer API key (scoped to the issuing pharmacy → automatic tenant
  * isolation). GET lists patients; POST upserts a patient by phone.
  */

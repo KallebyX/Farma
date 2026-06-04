@@ -136,7 +136,7 @@ export default async function PatientsPage({
                     </td>
                     <td className="px-4 py-3 text-slate-600 text-[13px]">
                       {p.prescriptions.length === 0 ? (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-slate-400">-</span>
                       ) : (
                         <span>{p.prescriptions.length} ativo{p.prescriptions.length > 1 ? "s" : ""}</span>
                       )}

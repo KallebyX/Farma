@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { resolvePatientFromRequest } from "@/lib/patient-session";
 
-/** GET /api/patient/profile — the patient's own profile. */
+/** GET /api/patient/profile - the patient's own profile. */
 export async function GET(req: Request) {
   try {
     const p = await resolvePatientFromRequest(req);
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   }
 }
 
-/** PATCH /api/patient/profile — patient edits their own profile (whitelisted fields). */
+/** PATCH /api/patient/profile - patient edits their own profile (whitelisted fields). */
 export async function PATCH(req: Request) {
   try {
     const p = await resolvePatientFromRequest(req);

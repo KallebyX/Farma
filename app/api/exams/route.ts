@@ -4,7 +4,7 @@ import { UnauthorizedError } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db";
 import { createExamFromFile, listExamsForPatient } from "@/lib/exams";
 
-/** GET /api/exams?patientId=… — list a patient's exams (staff, tenant-scoped). */
+/** GET /api/exams?patientId=… - list a patient's exams (staff, tenant-scoped). */
 export async function GET(req: Request) {
   try {
     const ctx = await requireSession();
@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   }
 }
 
-/** POST /api/exams — multipart upload (staff): { patientId, title, category?, file }. */
+/** POST /api/exams - multipart upload (staff): { patientId, title, category?, file }. */
 export async function POST(req: Request) {
   try {
     const ctx = await requireSession();

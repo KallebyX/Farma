@@ -357,7 +357,7 @@ function SuccessView({
             {summary.map((d, i) => (
               <li key={i}>
                 <span className="font-medium">{d.channel}</span> · {d.status}
-                {d.error ? <span className="text-amber-700"> — {d.error}</span> : null}
+                {d.error ? <span className="text-amber-700"> - {d.error}</span> : null}
               </li>
             ))}
           </ul>

@@ -535,7 +535,7 @@ function ReceiptScanHubSection({ token, onFlash }: { token: string; onFlash: (m:
   }
 
   async function startScan() {
-    if (!navigator.mediaDevices?.getUserMedia) { onFlash("Câmera indisponível — cole a chave abaixo"); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { onFlash("Câmera indisponível - cole a chave abaixo"); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       streamRef.current = stream;
@@ -882,7 +882,7 @@ function RxUploadHubSection({ token, onFlash }: { token: string; onFlash: (m: st
   }
 
   return (
-    <Section title="📄 Enviar receita" subtitle="Receita digital (PDF/.p7s) ou foto — avaliamos a assinatura e avisamos sua farmácia">
+    <Section title="📄 Enviar receita" subtitle="Receita digital (PDF/.p7s) ou foto - avaliamos a assinatura e avisamos sua farmácia">
       <div className="rounded-xl bg-white/5 border border-white/10 p-3.5">
         <input ref={fileRef} type="file" accept="application/pdf,image/*,.p7s"
           className="w-full text-[12px] text-emerald-100/70 file:mr-2 file:rounded-md file:border-0 file:bg-emerald-400 file:px-3 file:py-1.5 file:text-[12px] file:font-bold file:text-emerald-950" />

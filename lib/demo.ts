@@ -4,7 +4,7 @@ import { awardPoints, completeMission } from "@/lib/loyalty/service";
 /**
  * Demo "Meu Prontuário": ensures a self-contained demo Pharmacy + Patient exist
  * (idempotent) so the /demo/prontuario route can hand out a real hub token and
- * render the ACTUAL patient hub — same code, APIs and gamification as production.
+ * render the ACTUAL patient hub - same code, APIs and gamification as production.
  * Seeds a little loyalty activity so the demo looks lived-in. Safe to call on
  * every visit (all upserts/awards are idempotent).
  */
@@ -27,7 +27,7 @@ export async function ensureDemoPatient(): Promise<string> {
   });
 
   // A user is required as Patient.createdById; reuse a dedicated demo system user.
-  // upsert (not findFirst+create) to be atomic — concurrent demo visits would
+  // upsert (not findFirst+create) to be atomic - concurrent demo visits would
   // otherwise race and hit a P2002 unique violation on the email.
   const user = await prisma.user.upsert({
     where: { email: "demo-system@farma.app" },

@@ -4,7 +4,7 @@ import { UnauthorizedError } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/db";
 import { dispense } from "@/lib/rx";
 
-/** POST /api/rx/dispense — staff records a dispensation (with traceability). */
+/** POST /api/rx/dispense - staff records a dispensation (with traceability). */
 export async function POST(req: Request) {
   try {
     const ctx = await requireSession();

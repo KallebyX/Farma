@@ -1,6 +1,6 @@
 /**
  * WhatsApp client. Wraps Z-API (default) or Meta Cloud API or Twilio. Falls back
- * to a mock that just logs when credentials are missing — useful for dev/E2E.
+ * to a mock that just logs when credentials are missing - useful for dev/E2E.
  *
  * Business-initiated WhatsApp (Twilio) requires an approved Content template.
  * Each outbound message may carry a `template` hint (a logical key like "otp"
@@ -126,7 +126,7 @@ async function sendViaTwilio(
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      // Surface the Twilio error in prod logs — the most common causes are an
+      // Surface the Twilio error in prod logs - the most common causes are an
       // unapproved template, a freeform Body outside the 24h window, or
       // ContentVariables that don't match the template's placeholders.
       const usedTemplate = body.get("ContentSid") ?? "(Body)";
@@ -145,7 +145,7 @@ async function sendViaTwilio(
 }
 
 export async function sendWhatsApp(msg: WhatsAppOutbound): Promise<WhatsAppSendResult> {
-  // DB config (set via MCP) overrides env — lets us activate without Vercel env.
+  // DB config (set via MCP) overrides env - lets us activate without Vercel env.
   const cfg = await getIntegrationConfig();
   const provider = cfg.whatsappProvider ?? ENV_PROVIDER;
 

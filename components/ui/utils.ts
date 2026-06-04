@@ -2,19 +2,19 @@ export const cx = (...args: (string | boolean | undefined | null)[]) =>
   args.filter(Boolean).join(" ");
 
 export const fmtDateBR = (d: string | Date | null | undefined): string => {
-  if (!d) return "—";
+  if (!d) return "-";
   const date = typeof d === "string" ? new Date(d) : d;
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
 };
 
 export const fmtDateTimeBR = (d: string | Date | null | undefined): string => {
-  if (!d) return "—";
+  if (!d) return "-";
   const date = typeof d === "string" ? new Date(d) : d;
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(date);
 };
 
 export const fmtRelative = (d: string | Date | null | undefined): string => {
-  if (!d) return "—";
+  if (!d) return "-";
   const date = typeof d === "string" ? new Date(d) : d;
   const diff = date.getTime() - Date.now();
   const days = Math.round(diff / 86400000);

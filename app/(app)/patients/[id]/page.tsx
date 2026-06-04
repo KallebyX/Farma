@@ -81,7 +81,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             <Card className="px-5 py-4">
               <p className="text-[10.5px] uppercase tracking-[0.12em] text-slate-500 font-semibold">Adesão</p>
               <p className={`mt-1 text-3xl font-bold tabular-nums ${adherenceColor(adherenceRate)}`}>
-                {adherenceRate === null ? "—" : `${adherenceRate}%`}
+                {adherenceRate === null ? "-" : `${adherenceRate}%`}
               </p>
               <p className="text-[10.5px] text-slate-400 mt-0.5">30 últimas doses</p>
             </Card>

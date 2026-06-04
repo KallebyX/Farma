@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
 
-/** PWA manifest — makes Farma installable (patient app + staff panel). */
+/** PWA manifest - makes Farma installable (patient app + staff panel). */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Farma — Meu Prontuário",
+    name: "Farma - Meu Prontuário",
     short_name: "Farma",
-    description: "Adesão ao tratamento, saúde conectada e recompensas — no seu bolso.",
+    description: "Adesão ao tratamento, saúde conectada e recompensas - no seu bolso.",
     start_url: "/",
     scope: "/",
     display: "standalone",

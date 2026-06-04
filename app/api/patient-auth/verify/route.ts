@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyPatientCode, isValidPhone } from "@/lib/patient-auth";
 
-/** POST /api/patient-auth/verify { phone, code } — verifies OTP → hub token + cookie. */
+/** POST /api/patient-auth/verify { phone, code } - verifies OTP → hub token + cookie. */
 export async function POST(req: Request) {
   let body: { phone?: string; code?: string };
   try {

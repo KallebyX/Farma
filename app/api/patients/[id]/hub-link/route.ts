@@ -5,7 +5,7 @@ import { UnauthorizedError } from "@/lib/auth/permissions";
 import { signPatientToken } from "@/lib/patient-token";
 
 /**
- * GET /api/patients/[id]/hub-link — staff generates the patient's loyalty hub
+ * GET /api/patients/[id]/hub-link - staff generates the patient's loyalty hub
  * magic link (to share via WhatsApp). Tenant-scoped: the patient must belong
  * to the caller's pharmacy.
  */

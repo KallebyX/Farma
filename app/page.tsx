@@ -3,35 +3,35 @@ import { FarmaLogo, Icon } from "@/components/ui";
 
 /**
  * Public marketing landing page. Intentionally auth-free (no `auth()` call) so
- * `/` always renders — even on an environment where the auth secret isn't set —
- * and so it can be statically optimized. Staff CTAs go to /sign-up and /sign-in;
- * patients go to /entrar; anyone can preview the patient app at /demo/prontuario.
+ * `/` always renders (even where the auth secret isn't set) and can be statically
+ * optimized. Pharmacy CTAs go to /sign-up and /sign-in; patients go to /entrar;
+ * anyone can preview the patient app at /demo/prontuario.
  */
 export const metadata = {
-  title: "Farma — Adesão, farmacovigilância e fidelização para farmácias",
+  title: "Farma · Adesão, farmacovigilância e fidelização para farmácias",
   description:
-    "Plataforma que aumenta a adesão ao tratamento via WhatsApp, automatiza farmacovigilância (RAM→VigiMed), traz pacientes de volta para recompra e fideliza com gamificação e cashback de afiliados.",
+    "A plataforma que aumenta a adesão ao tratamento via WhatsApp, automatiza a farmacovigilância (RAM ao VigiMed), traz o paciente de volta para a recompra e fideliza com gamificação e cashback. Multiloja e em conformidade com a LGPD.",
 };
 
 const features = [
-  { icon: "WhatsApp", title: "Adesão por WhatsApp", desc: "Lembretes de medicação no horário certo, confirmação de dose e follow-up automático. Menos abandono de tratamento." },
-  { icon: "Alert", title: "Farmacovigilância", desc: "Inbox de reações adversas (RAM) com triagem clínica e submissão ao VigiMed — conformidade sem planilha." },
-  { icon: "Cart", title: "Retornos & recompra", desc: "A plataforma prevê quando o remédio vai acabar e reconquista o paciente antes que ele compre na concorrência." },
-  { icon: "Heart", title: "Gamificação & fidelidade", desc: "Missões, pontos e níveis Bronze→Platina que transformam a adesão em hábito — no estilo dos melhores apps de saúde." },
-  { icon: "TrendUp", title: "Afiliados & cashback", desc: "Links rastreáveis de compra: o paciente ganha pontos, a farmácia ganha comissão. Conversões idempotentes e auditáveis." },
-  { icon: "Activity", title: "Saúde conectada", desc: "Apple Watch, Galaxy Watch, Fitbit, Oura e mais — métricas do paciente direto no prontuário." },
+  { icon: "WhatsApp", title: "Adesão por WhatsApp", desc: "Lembretes de medicação na hora certa, confirmação de dose e follow-up automático. Menos abandono de tratamento." },
+  { icon: "Alert", title: "Farmacovigilância", desc: "Inbox de reações adversas (RAM) com triagem clínica e submissão ao VigiMed. Conformidade sem planilha." },
+  { icon: "Cart", title: "Retornos e recompra", desc: "A plataforma prevê quando o remédio vai acabar e reconquista o paciente antes que ele compre na concorrência." },
+  { icon: "Heart", title: "Gamificação e fidelidade", desc: "Missões, pontos e níveis Bronze a Platina que transformam a adesão em hábito, no estilo dos melhores apps de saúde." },
+  { icon: "TrendUp", title: "Afiliados e cashback", desc: "Links de compra rastreáveis: o paciente ganha pontos e a farmácia ganha comissão. Conversões idempotentes e auditáveis." },
+  { icon: "Activity", title: "Saúde conectada", desc: "Apple Watch, Galaxy Watch, Fitbit, Oura e mais. As métricas do paciente direto no prontuário." },
 ];
 
 const steps = [
   { n: "1", title: "Cadastre o paciente e a prescrição", desc: "Em segundos, com consentimento LGPD e posologia por intervalo ou horários fixos." },
-  { n: "2", title: "O WhatsApp faz o trabalho pesado", desc: "Lembretes, confirmações, RAM e retornos acontecem sozinhos — sua equipe só atua quando precisa." },
-  { n: "3", title: "Engaje, fidelize e cresça", desc: "O paciente acompanha sua saúde no hub, ganha pontos e volta para comprar com você." },
+  { n: "2", title: "O WhatsApp faz o trabalho pesado", desc: "Lembretes, confirmações, RAM e retornos acontecem sozinhos. Sua equipe só atua quando precisa." },
+  { n: "3", title: "Engaje, fidelize e cresça", desc: "O paciente acompanha a saúde no hub, ganha pontos e volta para comprar com você." },
 ];
 
 export default function Landing() {
   return (
     <div className="min-h-screen bg-white text-slate-800">
-      {/* ── Nav ─────────────────────────────────────────────────────────── */}
+      {/* Nav */}
       <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
           <Link href="/" className="flex items-center gap-2.5">
@@ -55,7 +55,7 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* ── Hero ────────────────────────────────────────────────────────── */}
+      {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand-50/70 via-white to-white" />
         <div className="relative mx-auto max-w-6xl px-5 pb-20 pt-16 md:pt-24">
@@ -65,11 +65,11 @@ export default function Landing() {
               Adesão · Farmacovigilância · Fidelização
             </span>
             <h1 className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight text-slate-900 md:text-[56px]">
-              Seus pacientes <span className="text-brand-700">aderem ao tratamento</span> — e voltam para comprar com você.
+              Seus pacientes <span className="text-brand-700">aderem ao tratamento</span> e voltam para comprar com você.
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-[16px] leading-relaxed text-slate-600 md:text-[17.5px]">
-              A Farma é a plataforma que cuida da adesão via WhatsApp, automatiza a farmacovigilância e fideliza
-              com gamificação e cashback — tudo multiloja, com conformidade LGPD.
+              A Farma cuida da adesão via WhatsApp, automatiza a farmacovigilância e fideliza o paciente com
+              gamificação e cashback. Tudo multiloja e em conformidade com a LGPD.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link href="/sign-up" className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-7 text-[15px] font-semibold text-white shadow-md transition hover:bg-brand-800 sm:w-auto">
@@ -80,7 +80,7 @@ export default function Landing() {
               </Link>
             </div>
             <p className="mt-4 text-[12.5px] text-slate-400">
-              É paciente? <Link href="/cadastro" className="font-medium text-brand-600 underline-offset-2 hover:underline">Crie sua conta</Link> ou <Link href="/entrar" className="font-medium text-brand-600 underline-offset-2 hover:underline">entre aqui →</Link>
+              É paciente? <Link href="/cadastro" className="font-medium text-brand-600 underline-offset-2 hover:underline">Crie sua conta</Link> ou <Link href="/entrar" className="font-medium text-brand-600 underline-offset-2 hover:underline">entre aqui</Link>.
             </p>
           </div>
 
@@ -89,8 +89,8 @@ export default function Landing() {
             {[
               ["+40%", "adesão ao tratamento"],
               ["24/7", "lembretes no WhatsApp"],
-              ["1 clique", "RAM → VigiMed"],
-              ["100%", "multiloja & LGPD"],
+              ["1 clique", "RAM ao VigiMed"],
+              ["100%", "multiloja e LGPD"],
             ].map(([big, small]) => (
               <div key={small} className="bg-white px-5 py-6 text-center">
                 <p className="text-2xl font-bold tracking-tight text-brand-800 md:text-3xl">{big}</p>
@@ -101,11 +101,11 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Features ────────────────────────────────────────────────────── */}
+      {/* Features */}
       <section id="recursos" className="mx-auto max-w-6xl px-5 py-20">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-slate-900">Uma plataforma, o ciclo completo do paciente</h2>
-          <p className="mt-3 text-[15px] text-slate-600">Do primeiro lembrete à recompra fidelizada — sem trocar de sistema.</p>
+          <p className="mt-3 text-[15px] text-slate-600">Do primeiro lembrete à recompra fidelizada, sem trocar de sistema.</p>
         </div>
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => {
@@ -123,12 +123,12 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── How it works ────────────────────────────────────────────────── */}
+      {/* How it works */}
       <section id="como-funciona" className="border-y border-slate-100 bg-slate-50/60">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900">Funciona em 3 passos</h2>
-            <p className="mt-3 text-[15px] text-slate-600">Sua equipe ganha tempo; o paciente ganha cuidado.</p>
+            <p className="mt-3 text-[15px] text-slate-600">Sua equipe ganha tempo e o paciente ganha cuidado.</p>
           </div>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {steps.map((s) => (
@@ -142,21 +142,21 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Patient experience ──────────────────────────────────────────── */}
+      {/* Patient experience */}
       <section id="paciente" className="mx-auto max-w-6xl px-5 py-20">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
             <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-700">Para o paciente</span>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Um “Meu Prontuário” que o paciente realmente abre</h2>
             <p className="mt-4 text-[15px] leading-relaxed text-slate-600">
-              Lembretes que funcionam, consultas e exames num só lugar, dados do relógio sincronizados e
-              recompensas por cuidar da própria saúde. Quando o remédio acaba, a recompra é a um toque —
-              com pontos e o melhor preço entre as farmácias parceiras.
+              Lembretes que funcionam, consultas e exames num só lugar, dados do relógio sincronizados e recompensas
+              por cuidar da própria saúde. Quando o remédio acaba, a recompra fica a um toque, com pontos e o melhor
+              preço entre as farmácias parceiras.
             </p>
             <ul className="mt-6 space-y-3">
               {[
                 "Lembretes e confirmação de dose no WhatsApp",
-                "Saúde conectada: Apple Watch, Galaxy Watch, Fitbit, Oura…",
+                "Saúde conectada: Apple Watch, Galaxy Watch, Fitbit, Oura",
                 "Pontos, níveis e recompensas a cada passo",
                 "Recompra com link de afiliado e cashback",
               ].map((t) => (
@@ -187,7 +187,7 @@ export default function Landing() {
               </div>
               <div className="mt-4 space-y-2.5">
                 <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3">
-                  <span className="text-[13px] font-medium text-emerald-900">✓ Losartana 50mg — 08:00</span>
+                  <span className="text-[13px] font-medium text-emerald-900">✓ Losartana 50mg às 08:00</span>
                   <span className="text-[11px] font-semibold text-emerald-700">+10 pts</span>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
@@ -204,7 +204,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Integrations note ───────────────────────────────────────────── */}
+      {/* Integrations note */}
       <section className="border-t border-slate-100 bg-slate-50/60">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-5 py-12 text-center">
           <Icon.Link size={26} className="text-brand-600" />
@@ -216,7 +216,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Final CTA ───────────────────────────────────────────────────── */}
+      {/* Final CTA */}
       <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-800 to-brand-950 px-8 py-14 text-center shadow-xl">
           <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl">Pronto para fidelizar seus pacientes?</h2>
@@ -234,7 +234,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      {/* Footer */}
       <footer className="border-t border-slate-100">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-[12.5px] text-slate-500 sm:flex-row">
           <div className="flex items-center gap-2">

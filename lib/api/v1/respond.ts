@@ -34,7 +34,7 @@ export function fail(req: Request, error: string, status = 400): NextResponse {
   return NextResponse.json({ ok: false, error }, { status, headers: corsHeaders(req.headers.get("origin")) });
 }
 
-/** Standard CORS preflight handler — re-export as `OPTIONS` from each route. */
+/** Standard CORS preflight handler - re-export as `OPTIONS` from each route. */
 export function preflight(req: Request): NextResponse {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
 }

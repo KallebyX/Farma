@@ -16,7 +16,7 @@ export function extractAccessKey(input: string): string | null {
 
 export async function registerReceipt(patientId: string, pharmacyId: string, code: string) {
   const key = extractAccessKey(code);
-  if (!key) return { ok: false as const, status: 400, error: "QR inválido — esperado a chave de 44 dígitos da nota" };
+  if (!key) return { ok: false as const, status: 400, error: "QR inválido - esperado a chave de 44 dígitos da nota" };
   try {
     const receipt = await prisma.receipt.create({
       data: { patientId, pharmacyId, accessKey: key, rawUrl: code.slice(0, 500), pointsAwarded: RECEIPT_POINTS },

@@ -45,14 +45,14 @@ export async function sendInviteWhatsApp(params: WhatsAppParams): Promise<WhatsA
       status: "SKIPPED",
       providerId: waMeFallback(params.phone, message),
       error: res.error
-        ? `Envio automático indisponível (${res.error}) — gerado link wa.me`
-        : "WhatsApp não configurado — gerado link wa.me como fallback",
+        ? `Envio automático indisponível (${res.error}) - gerado link wa.me`
+        : "WhatsApp não configurado - gerado link wa.me como fallback",
     };
   } catch (err) {
     return {
       status: "SKIPPED",
       providerId: waMeFallback(params.phone, message),
-      error: `Falha no envio (${err instanceof Error ? err.message : String(err)}) — gerado link wa.me`,
+      error: `Falha no envio (${err instanceof Error ? err.message : String(err)}) - gerado link wa.me`,
     };
   }
 }
