@@ -5,6 +5,7 @@ import { isAtLeast } from "@/lib/auth/permissions";
 import { Role } from "@prisma/client";
 import { PageShell, PageHeader, Card, Badge, Icon } from "@/components/ui";
 import { ApiKeysPanel } from "./api-keys-client";
+import { EmailDomainPanel } from "./email-domain-client";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,8 @@ export default async function IntegracoesPage() {
           </div>
         </Card>
       </div>
+
+      {isOwner && <EmailDomainPanel />}
 
       <Card className="mt-6 p-6">
         <h2 className="text-[15px] font-semibold text-slate-800 flex items-center gap-2"><Icon.Book size={16} /> Início rápido</h2>
