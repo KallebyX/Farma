@@ -113,6 +113,29 @@ CRF é exigido pela validação Zod quando o papel convidado é PHARMACIST.
 - Aceite registra `consentVersion` no User para auditoria LGPD.
 - Cron diário marca como `EXPIRED` qualquer convite pendente vencido.
 
+## Ecossistema Oryum (AtendeBem + Meu Prontuário)
+
+A Farma é a farmácia no meio do ecossistema clínico da Oryum:
+
+- **AtendeBem** (gestão clínica) → o médico prescreve e empurra a receita para a
+  farmácia. Fluxo **inbound**: `POST /api/partner/v1/prescriptions` autenticado
+  por **API key de parceiro** (`mpk_…`, escopo `prescriptions:write`). A receita
+  vira um **lead de dispensação** (`DigitalPrescription`), com o paciente casado
+  por telefone e idempotência por `source`+`externalId`.
+- **Meu Prontuário** (app do paciente) → recebe receitas, dispensações e adesão
+  para a carteira de saúde. Consome a **API v1 do paciente** (`/api/v1/*`,
+  token de hub assinado).
+- Fluxo **outbound**: ao **dispensar** (`prescription.dispensed`) ou ao
+  **encaminhar uma RAM ao VigiMed** (`ram.forwarded`), a Farma notifica os
+  parceiros conectados com payload assinado (HMAC-SHA256) — fechando o loop
+  clínico. Tudo com consentimento LGPD e CPF hasheado.
+
+Conecte cada parceiro em **Integrações → Ecossistema Oryum** (somente OWNER):
+informe a `baseUrl` HTTPS do parceiro, teste a conexão e guarde o **segredo
+compartilhado** (mostrado uma vez) para validar os eventos que enviamos. As
+conexões e o log de sincronização (`EcosystemConnection`, `IntegrationSyncLog`)
+ficam no banco privado — nenhum segredo no repositório.
+
 ## Deploy (Vercel + Supabase)
 
 1. Criar projeto Supabase, copiar `DATABASE_URL` (pooler com `pgbouncer=true`) e `DIRECT_URL`.

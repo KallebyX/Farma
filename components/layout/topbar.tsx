@@ -2,9 +2,8 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Icon } from "@/components/ui";
+import { FarmaLogo, Icon } from "@/components/ui";
 import { cx } from "@/components/ui/utils";
-import { MobileNav } from "./mobile-nav";
 import type { NavCounts } from "./nav-items";
 
 interface TopbarProps {
@@ -39,11 +38,11 @@ export function Topbar({ counts }: TopbarProps) {
   const crumb = getBreadcrumb(pathname);
 
   return (
-    <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-30">
-      <div className="flex items-center gap-2">
-        <MobileNav counts={counts} />
-        <p className="text-[13px] font-semibold text-slate-800">{crumb}</p>
-      </div>
+    <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white/85 backdrop-blur-xl border-b border-slate-200/80 sticky top-0 z-30">
+      <Link href="/dashboard" className="flex items-center gap-2 min-w-0">
+        <FarmaLogo size={26} />
+        <p className="text-[15px] font-semibold text-slate-900 truncate">{crumb}</p>
+      </Link>
       <div className="flex items-center gap-2">
         {counts.ramPending > 0 && (
           <Link href="/ram" className={cx(
