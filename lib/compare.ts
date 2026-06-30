@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { saoJoaoRank } from "@/lib/pharmacy-rank";
 
 /** Price/stock comparator across pharmacies (pharmacy-configured catalog). */
 
@@ -41,13 +42,25 @@ export async function searchNearby(term: string, lat?: number, lng?: number): Pr
     };
   });
 
-  // Nearest first (when located), then cheapest.
-  results.sort((a, b) => {
-    const da = a.pharmacy.distanceKm, db = b.pharmacy.distanceKm;
+  // Rede São João first (flagship), then nearest (when located), then cheapest.
+  // Rank from the RAW pharmacy fields (fantasia + razaoSocial + chainName) so a
+  // branch whose "São João" branding lives only in razaoSocial is still caught —
+  // the collapsed display `name` (fantasia ?? razaoSocial) would miss it.
+  const ranked = results.map((res, i) => ({
+    res,
+    rank: saoJoaoRank({
+      fantasia: rows[i].pharmacy.fantasia,
+      razaoSocial: rows[i].pharmacy.razaoSocial,
+      chainName: rows[i].pharmacy.chainName,
+    }),
+  }));
+  ranked.sort((a, b) => {
+    if (a.rank !== b.rank) return a.rank - b.rank;
+    const da = a.res.pharmacy.distanceKm, db = b.res.pharmacy.distanceKm;
     if (da != null && db != null && da !== db) return da - db;
     if (da != null && db == null) return -1;
     if (da == null && db != null) return 1;
-    return a.finalCents - b.finalCents;
+    return a.res.finalCents - b.res.finalCents;
   });
-  return results.slice(0, 30);
+  return ranked.map((x) => x.res).slice(0, 30);
 }

@@ -2,6 +2,7 @@
 import React from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
+import { MobileTabBar } from "./mobile-tabbar";
 import { ToastProvider } from "@/components/ui/toast";
 
 interface AppShellProps {
@@ -15,12 +16,14 @@ interface AppShellProps {
 export function AppShell({ children, pharmacy, user, counts, signOutSlot }: AppShellProps) {
   return (
     <ToastProvider>
-      <div className="min-h-screen flex bg-[#FAFBFC]">
+      <div className="min-h-screen flex bg-[#F2F2F7]">
         <Sidebar pharmacy={pharmacy} user={user} counts={counts} signOutSlot={signOutSlot}/>
         <div className="flex-1 min-w-0 flex flex-col">
           <Topbar counts={counts}/>
-          <main className="flex-1 min-w-0">{children}</main>
+          {/* pb on mobile clears the fixed bottom tab bar (+ safe-area). */}
+          <main className="flex-1 min-w-0 pb-[calc(72px+env(safe-area-inset-bottom))] lg:pb-0">{children}</main>
         </div>
+        <MobileTabBar counts={counts}/>
       </div>
     </ToastProvider>
   );

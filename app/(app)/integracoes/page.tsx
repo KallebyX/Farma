@@ -5,6 +5,8 @@ import { isAtLeast } from "@/lib/auth/permissions";
 import { Role } from "@prisma/client";
 import { PageShell, PageHeader, Card, Badge, Icon } from "@/components/ui";
 import { ApiKeysPanel } from "./api-keys-client";
+import { EcosystemPanel, type PartnerCard } from "./ecosystem-client";
+import { PARTNER_KEYS, PARTNERS, listConnections, recentSyncLogs } from "@/lib/integrations/ecosystem";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,7 @@ export default async function IntegracoesPage() {
   if (!ctx) redirect("/sign-in");
   const isOwner = isAtLeast(ctx.role, Role.OWNER);
 
-  const [keys, endpoints, deliveries] = await Promise.all([
+  const [keys, endpoints, deliveries, connections, syncLogs] = await Promise.all([
     prisma.apiKey.findMany({
       where: { pharmacyId: ctx.pharmacyId },
       orderBy: { createdAt: "desc" },
@@ -31,13 +33,48 @@ export default async function IntegracoesPage() {
       orderBy: { createdAt: "desc" }, take: 10,
       select: { id: true, event: true, status: true, attempts: true, responseCode: true, createdAt: true },
     }),
+    listConnections(ctx.pharmacyId),
+    recentSyncLogs(ctx.pharmacyId, 12),
   ]);
+
+  const partners: PartnerCard[] = PARTNER_KEYS.map((key) => {
+    const meta = PARTNERS[key];
+    const c = connections.find((x) => x.partner === key);
+    return {
+      key,
+      label: meta.label,
+      short: meta.short,
+      description: meta.description,
+      baseUrlHint: meta.baseUrlHint,
+      connection: c
+        ? {
+            baseUrl: c.baseUrl,
+            status: c.status,
+            scopes: c.scopes,
+            lastSyncAt: c.lastSyncAt?.toISOString() ?? null,
+            lastError: c.lastError,
+            autoPushDispensations: c.autoPushDispensations,
+            autoAcceptPrescriptions: c.autoAcceptPrescriptions,
+            shareAdherence: c.shareAdherence,
+            hasSecret: Boolean(c.secret),
+          }
+        : null,
+    };
+  });
 
   return (
     <PageShell>
-      <PageHeader eyebrow="Para desenvolvedores" title="Integrações" subtitle="Conecte o sistema da sua farmácia: API de parceiros com chaves seguras e webhooks assinados." />
+      <PageHeader eyebrow="Para desenvolvedores" title="Integrações" subtitle="Conecte o ecossistema Oryum e o sistema da sua farmácia: parceiros clínicos, API com chaves seguras e webhooks assinados." />
 
       <div className="mt-8">
+        <EcosystemPanel
+          partners={partners}
+          logs={syncLogs.map((l) => ({ ...l, createdAt: l.createdAt.toISOString() }))}
+          canManage={isOwner}
+        />
+      </div>
+
+      <div className="mt-6">
         <ApiKeysPanel
           initialKeys={keys.map((k) => ({ ...k, lastUsedAt: k.lastUsedAt?.toISOString() ?? null, revokedAt: k.revokedAt?.toISOString() ?? null, createdAt: k.createdAt.toISOString() }))}
           canCreate={isOwner}

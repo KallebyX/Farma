@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { buildExamKey, uploadObject, storageConfigured, EXAM_MAX_BYTES } from "@/lib/storage";
 import { detectSignature } from "@/lib/icp-brasil";
+import { notifyEcosystem } from "@/lib/integrations/ecosystem";
 
 /** Digital prescriptions + dispensation (Phase 8 foundation). */
 
@@ -84,5 +85,15 @@ export async function dispense(args: {
   if (args.prescriptionId) {
     await prisma.digitalPrescription.updateMany({ where: { id: args.prescriptionId, pharmacyId: args.pharmacyId }, data: { status: "DISPENSED" } });
   }
+  // Tell the ecosystem (AtendeBem clinic + Meu Prontuário patient app) the drug
+  // was picked up — closes the loop on the prescription. Best-effort.
+  void notifyEcosystem(args.pharmacyId, "prescription.dispensed", {
+    id: d.id,
+    prescriptionId: args.prescriptionId ?? null,
+    patientId: args.patientId,
+    medication: args.medication.trim().slice(0, 160),
+    quantity: Number.isFinite(args.quantity) && (args.quantity ?? 0) > 0 ? Math.floor(args.quantity!) : 1,
+    crm: args.crm ?? null,
+  });
   return { ok: true as const, dispensationId: d.id };
 }

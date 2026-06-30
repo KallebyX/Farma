@@ -4,6 +4,8 @@ import { requireSession } from "@/lib/auth/session";
 import { ForbiddenError, UnauthorizedError, isAtLeast } from "@/lib/auth/permissions";
 import { Role, RAMStatus } from "@prisma/client";
 import { reviewRamSchema } from "@/lib/patients/schema";
+import { emitWebhook } from "@/lib/webhooks/dispatch";
+import { notifyEcosystem } from "@/lib/integrations/ecosystem";
 import { randomBytes } from "node:crypto";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -50,6 +52,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         forwardedAt: parsed.data.forwardToVigimed ? new Date() : null,
       },
     });
+
+    // Notify the pharmacy's own webhooks and the ecosystem partners (the clinic
+    // that issued the prescription gets the pharmacovigilance outcome back).
+    void emitWebhook(session.pharmacyId, "ram.reviewed", {
+      ramId: updated.id,
+      status: updated.status,
+      vigimedProtocol: vigimedProtocol ?? null,
+    });
+    if (parsed.data.forwardToVigimed) {
+      void notifyEcosystem(session.pharmacyId, "ram.forwarded", {
+        id: updated.id,
+        patientId: updated.patientId,
+        severity: updated.severity,
+        vigimedProtocol: vigimedProtocol ?? null,
+      });
+    }
 
     return NextResponse.json({ ok: true, ram: updated, vigimedProtocol });
   } catch (err) {

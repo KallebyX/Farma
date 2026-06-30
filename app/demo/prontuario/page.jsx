@@ -52,6 +52,7 @@ const PACIENTE = {
 
 /* ─── FARMÁCIAS PARCEIRAS & MEDICAÇÕES ──────────────────────────── */
 const FARMACIAS = [
+  { id: 0, nome: "Rede São João", parceiro: true, distancia: "0.3 km", endereco: "Centro — Passo Fundo, RS", aberto24h: false, horario: "07h às 22h", taxaEntrega: "Grátis", tempoEntrega: "25-40 min", convenios: ["Programa Farma", "Bradesco Saúde", "SulAmérica"], rating: 4.9, icone: "🟢", cor: "#0ABF77", total: 142.5, desconto: 27.6, final: 109.9 },
   { id: 1, nome: "Drogasil", distancia: "0.4 km", endereco: "Av. Paulista, 1230 — Bela Vista", aberto24h: false, horario: "07h às 23h", taxaEntrega: "R$ 6,90", tempoEntrega: "30-45 min", convenios: ["Bradesco Saúde", "SulAmérica", "Programa Vida"], rating: 4.7, icone: "💊", cor: "#0d9488", total: 142.5, desconto: 18.3, final: 124.2 },
   { id: 2, nome: "Drogaria São Paulo", distancia: "0.8 km", endereco: "R. Augusta, 890 — Consolação", aberto24h: true, horario: "24 horas", taxaEntrega: "R$ 8,90", tempoEntrega: "45-60 min", convenios: ["Amil", "Bradesco Saúde", "Programa Mais Saúde"], rating: 4.5, icone: "🏥", cor: "#3b82f6", total: 142.5, desconto: 12.1, final: 130.4 },
   { id: 3, nome: "Pague Menos", distancia: "1.2 km", endereco: "Av. Brigadeiro Luís Antônio, 456", aberto24h: false, horario: "07h às 22h", taxaEntrega: "Grátis", tempoEntrega: "60-90 min", convenios: ["SulAmérica", "Sempre Bem"], rating: 4.4, icone: "🏪", cor: "#9333ea", total: 142.5, desconto: 22.8, final: 119.7 },
@@ -239,6 +240,7 @@ function PainelFarmacia() {
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                       <span style={{ fontWeight: 800, fontSize: 15, color: T.slate800 }}>{f.nome}</span>
+                      {f.parceiro && <span style={{ background: "#0ABF7715", color: "#077C4F", fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 8 }}>★ PARCEIRO FARMA</span>}
                       {f.aberto24h && <span style={{ background: "#dcfce7", color: "#166534", fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 8 }}>24H</span>}
                       <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 11, color: "#f59e0b", fontWeight: 700 }}>⭐ {f.rating}</span>
                     </div>

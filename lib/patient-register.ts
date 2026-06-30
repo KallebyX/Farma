@@ -1,19 +1,22 @@
 import { prisma } from "@/lib/db";
 import { requestPatientCode, isValidPhone } from "@/lib/patient-auth";
 import { resolveReferrer, recordReferral } from "@/lib/referral";
+import { saoJoaoRank } from "@/lib/pharmacy-rank";
 
 /** Open patient self-registration + pharmacy discovery + referral support. */
 
-export function searchPharmacies(q: string) {
+export async function searchPharmacies(q: string) {
   const query = q.trim();
-  return prisma.pharmacy.findMany({
+  const rows = await prisma.pharmacy.findMany({
     where: query
       ? { OR: [{ fantasia: { contains: query, mode: "insensitive" } }, { razaoSocial: { contains: query, mode: "insensitive" } }, { cnpj: { contains: query.replace(/\D/g, "") } }] }
       : {},
     orderBy: { razaoSocial: "asc" },
     take: 20,
-    select: { id: true, fantasia: true, razaoSocial: true, cnpj: true },
+    select: { id: true, fantasia: true, razaoSocial: true, cnpj: true, chainName: true },
   });
+  // Rede São João sempre aparece em primeiro lugar na vitrine do paciente.
+  return rows.sort((a, b) => saoJoaoRank(a) - saoJoaoRank(b));
 }
 
 /**

@@ -50,13 +50,13 @@ export const Icon = {
 export function FarmaLogo({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <rect x="2" y="2" width="36" height="36" rx="10" fill="url(#fl-grad)"/>
+      <rect x="2" y="2" width="36" height="36" rx="11" fill="url(#fl-grad)"/>
       <path d="M14 12h7a5 5 0 0 1 0 10h-3v6h-4V12z" fill="white"/>
-      <circle cx="29" cy="27" r="3.5" fill="#0ABF77" stroke="white" strokeWidth="1.5"/>
+      <circle cx="29" cy="27" r="3.5" fill="#0A84FF" stroke="white" strokeWidth="1.5"/>
       <defs>
         <linearGradient id="fl-grad" x1="0" y1="0" x2="40" y2="40">
-          <stop offset="0" stopColor="#2E6AA5"/>
-          <stop offset="1" stopColor="#163659"/>
+          <stop offset="0" stopColor="#2FD493"/>
+          <stop offset="1" stopColor="#0ABF77"/>
         </linearGradient>
       </defs>
     </svg>
@@ -67,26 +67,26 @@ export function FarmaLogo({ size = 32 }: { size?: number }) {
 export const Illus = {
   PillBottle: ({ size = 110 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 160 160" fill="none">
-      <rect x="40" y="40" width="80" height="100" rx="14" fill="#EBF4FB" stroke="#A6CBE9" strokeWidth="1.5"/>
-      <rect x="40" y="40" width="80" height="22" rx="11" fill="#D2E5F4" stroke="#A6CBE9" strokeWidth="1.5"/>
-      <rect x="50" y="28" width="60" height="18" rx="6" fill="#7AB1DE" stroke="#3B82C4" strokeWidth="1.5"/>
-      <path d="M55 80h50" stroke="#2E6AA5" strokeWidth="2.5" strokeLinecap="round"/>
-      <path d="M80 65v30" stroke="#2E6AA5" strokeWidth="2.5" strokeLinecap="round"/>
+      <rect x="40" y="40" width="80" height="100" rx="14" fill="#E6F9F1" stroke="#8AE3BE" strokeWidth="1.5"/>
+      <rect x="40" y="40" width="80" height="22" rx="11" fill="#C2F0DD" stroke="#8AE3BE" strokeWidth="1.5"/>
+      <rect x="50" y="28" width="60" height="18" rx="6" fill="#4FD19C" stroke="#0ABF77" strokeWidth="1.5"/>
+      <path d="M55 80h50" stroke="#089E63" strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M80 65v30" stroke="#089E63" strokeWidth="2.5" strokeLinecap="round"/>
       <circle cx="60" cy="120" r="6" fill="#0ABF77"/>
-      <circle cx="80" cy="120" r="6" fill="#D2E5F4"/>
-      <circle cx="100" cy="120" r="6" fill="#D2E5F4"/>
+      <circle cx="80" cy="120" r="6" fill="#C2F0DD"/>
+      <circle cx="100" cy="120" r="6" fill="#C2F0DD"/>
     </svg>
   ),
   Chat: ({ size = 110 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 160 160" fill="none">
-      <rect x="20" y="35" width="90" height="60" rx="14" fill="#EBF4FB" stroke="#A6CBE9" strokeWidth="1.5"/>
-      <path d="M50 95l-5 14 18-10" fill="#EBF4FB" stroke="#A6CBE9" strokeWidth="1.5" strokeLinejoin="round"/>
+      <rect x="20" y="35" width="90" height="60" rx="14" fill="#E6F9F1" stroke="#8AE3BE" strokeWidth="1.5"/>
+      <path d="M50 95l-5 14 18-10" fill="#E6F9F1" stroke="#8AE3BE" strokeWidth="1.5" strokeLinejoin="round"/>
       <rect x="50" y="70" width="80" height="60" rx="14" fill="#DCFCE7" stroke="#86EFAC" strokeWidth="1.5"/>
       <path d="M118 130l5 14-18-10" fill="#DCFCE7" stroke="#86EFAC" strokeWidth="1.5" strokeLinejoin="round"/>
       <path d="M65 95h40" stroke="#0ABF77" strokeWidth="2" strokeLinecap="round"/>
       <path d="M65 105h28" stroke="#0ABF77" strokeWidth="2" strokeLinecap="round"/>
-      <path d="M35 55h60" stroke="#3B82C4" strokeWidth="2" strokeLinecap="round"/>
-      <path d="M35 70h40" stroke="#3B82C4" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M35 55h60" stroke="#0ABF77" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M35 70h40" stroke="#0ABF77" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   ),
   Empty: ({ size = 110 }: { size?: number }) => (
@@ -94,8 +94,8 @@ export const Illus = {
       <ellipse cx="80" cy="125" rx="48" ry="6" fill="#F1F5F9"/>
       <rect x="40" y="50" width="80" height="60" rx="10" fill="#F8FAFC" stroke="#E2E8F0" strokeWidth="1.5"/>
       <path d="M55 70h50M55 85h50M55 100h30" stroke="#CBD5E1" strokeWidth="2" strokeLinecap="round"/>
-      <circle cx="118" cy="48" r="14" fill="#EBF4FB" stroke="#7AB1DE" strokeWidth="1.5"/>
-      <path d="M118 42v12M112 48h12" stroke="#3B82C4" strokeWidth="2" strokeLinecap="round"/>
+      <circle cx="118" cy="48" r="14" fill="#E6F9F1" stroke="#4FD19C" strokeWidth="1.5"/>
+      <path d="M118 42v12M112 48h12" stroke="#0ABF77" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   ),
 };
@@ -131,7 +131,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export function Button({ children, variant = "primary", size = "md", icon, iconRight, className, ...rest }: ButtonProps) {
   const variants = {
-    primary: "bg-brand-700 text-white hover:bg-brand-800 border border-brand-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_1px_2px_rgba(22,54,89,0.18)]",
+    primary: "bg-brand-500 text-white hover:bg-brand-600 border border-brand-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_1px_2px_rgba(10,191,119,0.25)] active:scale-[0.98]",
     secondary: "bg-white text-slate-700 hover:bg-slate-50 border border-slate-300",
     ghost: "bg-transparent text-slate-600 hover:bg-slate-100 border border-transparent",
     danger: "bg-rose-600 text-white hover:bg-rose-700 border border-rose-600",
@@ -139,8 +139,8 @@ export function Button({ children, variant = "primary", size = "md", icon, iconR
     soft: "bg-brand-50 text-brand-800 hover:bg-brand-100 border border-brand-100",
   };
   const sizes = {
-    sm: "h-8 px-2.5 text-[12.5px] gap-1.5 rounded-md",
-    md: "h-9 px-3.5 text-[13px] gap-1.5 rounded-lg",
+    sm: "h-8 px-3 text-[12.5px] gap-1.5 rounded-md",
+    md: "h-9 px-4 text-[13px] gap-1.5 rounded-md",
     lg: "h-11 px-5 text-sm gap-2 rounded-lg",
   };
   return (
@@ -190,7 +190,7 @@ export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
 // ── Card ──────────────────────────────────────────────────────────────────────
 export function Card({ children, className, ...rest }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cx("rounded-xl bg-white border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04)]", className)} {...rest}>
+    <div className={cx("rounded-xl bg-white border border-slate-200/70 shadow-card", className)} {...rest}>
       {children}
     </div>
   );
@@ -260,7 +260,7 @@ export function Field({ label, hint, error, required, children }: {
 // ── PageShell / PageHeader ─────────────────────────────────────────────────────
 export function PageShell({ children, narrow }: { children: React.ReactNode; narrow?: boolean }) {
   return (
-    <div className={cx("px-8 py-8", narrow ? "max-w-3xl" : "max-w-[1240px]", "mx-auto")}>
+    <div className={cx("px-4 py-6 sm:px-6 sm:py-8 lg:px-8", narrow ? "max-w-3xl" : "max-w-[1240px]", "mx-auto")}>
       {children}
     </div>
   );
