@@ -2,18 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; }
+/* TechBem / Apple HIG foundation: San Francisco rendering, a system-grey grouped
+   canvas, and the brand green as the focus tint. */
+:root {
+  color-scheme: light;
+  --tint: #0ABF77;
+}
 html, body { height: 100%; }
 body {
-  background: #FAFBFC;
-  color: #0F172A;
+  background: #F2F2F7; /* Apple system grouped background (light) */
+  color: #1C1C1E; /* Apple label */
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: "cv02","cv03","cv04","cv11";
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
-:where(input,textarea,select,button):focus-visible {
-  outline: 2px solid #3B82C4;
+/* Clear tint focus ring for keyboard users. */
+:where(input,textarea,select,button,a):focus-visible {
+  outline: 2px solid var(--tint);
   outline-offset: 2px;
+  border-radius: 6px;
 }
+/* Monospace numerics line up in tables/IDs. */
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
 @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
 @keyframes scalein { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
 @keyframes slidein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}

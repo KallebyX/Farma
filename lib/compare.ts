@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { saoJoaoRank } from "@/lib/pharmacy-rank";
 
 /** Price/stock comparator across pharmacies (pharmacy-configured catalog). */
 
@@ -41,8 +42,11 @@ export async function searchNearby(term: string, lat?: number, lng?: number): Pr
     };
   });
 
-  // Nearest first (when located), then cheapest.
+  // Rede São João first (flagship), then nearest (when located), then cheapest.
   results.sort((a, b) => {
+    const ra = saoJoaoRank({ name: a.pharmacy.name, chainName: a.pharmacy.chainName });
+    const rb = saoJoaoRank({ name: b.pharmacy.name, chainName: b.pharmacy.chainName });
+    if (ra !== rb) return ra - rb;
     const da = a.pharmacy.distanceKm, db = b.pharmacy.distanceKm;
     if (da != null && db != null && da !== db) return da - db;
     if (da != null && db == null) return -1;

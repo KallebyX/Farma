@@ -32,7 +32,7 @@ export default function GlobalError({
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
               <button
                 onClick={reset}
-                style={{ padding: "8px 16px", background: "#235286", color: "white", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer" }}
+                style={{ padding: "8px 16px", background: "#0ABF77", color: "white", border: "none", borderRadius: 8, fontSize: 13, cursor: "pointer" }}
               >
                 Tentar novamente
               </button>
