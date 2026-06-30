@@ -64,6 +64,9 @@ model Pharmacy {
   webhooks     WebhookEndpoint[]
   products     PharmacyProduct[]
   accountLinks PatientPharmacyLink[]
+
+  ecosystemConnections EcosystemConnection[]
+  syncLogs             IntegrationSyncLog[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1043,12 +1046,18 @@ model DigitalPrescription {
   issuedAt   DateTime?
   status     RxStatus              @default(SUBMITTED)
   notes      String?
+  // Provenance: where this prescription came from — "patient" (default upload),
+  // "atendebem" (clinic push), "memed"… `externalId` is the partner's own id so
+  // a re-push is idempotent and dispensation status can be reflected back.
+  source     String?
+  externalId String?
   createdAt  DateTime              @default(now())
   updatedAt  DateTime              @updatedAt
 
   patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
   dispensations Dispensation[]
 
+  @@unique([pharmacyId, source, externalId])
   @@index([patientId, createdAt])
   @@index([pharmacyId, status])
 }
@@ -1148,4 +1157,75 @@ model PatientRefreshToken {
   account PatientAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([accountId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ecossistema Oryum — ponte entre a Farma (farmácia), o AtendeBem (clínica) e o
+// Meu Prontuário (app do paciente). Cada farmácia conecta um parceiro com uma
+// baseUrl + segredo (guardado só no DB privado). Eventos clínicos fluem nos dois
+// sentidos: receitas entram do AtendeBem; dispensações/RAM saem para o parceiro
+// e para o app do paciente. Sempre com consentimento LGPD e CPF hasheado.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum EcosystemPartner {
+  ATENDEBEM // gestão clínica (médico prescreve)
+  MEU_PRONTUARIO // app do paciente (adesão + carteira de saúde)
+}
+
+enum ConnectionStatus {
+  DISCONNECTED
+  CONNECTED
+  ERROR
+}
+
+enum SyncDirection {
+  INBOUND // parceiro → Farma
+  OUTBOUND // Farma → parceiro
+}
+
+enum SyncStatus {
+  SUCCESS
+  FAILED
+}
+
+model EcosystemConnection {
+  id                      String           @id @default(uuid())
+  pharmacyId              String
+  partner                 EcosystemPartner
+  baseUrl                 String? // endpoint HTTPS do parceiro
+  // Segredo compartilhado: assina (HMAC) os eventos que ENVIAMOS ao parceiro e
+  // autentica os que ele nos envia. Vive só no DB privado, nunca no repositório.
+  secret                  String?
+  status                  ConnectionStatus @default(DISCONNECTED)
+  scopes                  String[]         @default([])
+  // Comportamento do fluxo (tunável por farmácia)
+  autoPushDispensations   Boolean          @default(true) // avisa o parceiro quando dispensamos
+  autoAcceptPrescriptions Boolean          @default(true) // aceita receitas que o parceiro empurra
+  shareAdherence          Boolean          @default(true) // compartilha adesão com o app do paciente
+  lastSyncAt              DateTime?
+  lastError               String?
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  pharmacy Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+
+  @@unique([pharmacyId, partner])
+  @@index([pharmacyId])
+}
+
+model IntegrationSyncLog {
+  id         String           @id @default(uuid())
+  pharmacyId String
+  partner    EcosystemPartner
+  direction  SyncDirection
+  event      String
+  status     SyncStatus
+  detail     String?
+  externalId String?
+  createdAt  DateTime         @default(now())
+
+  pharmacy Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+
+  @@index([pharmacyId, createdAt])
+  @@index([partner, createdAt])
 }
