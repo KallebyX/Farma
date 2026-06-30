@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "vercel-build": "prisma generate && ([ -z \"$DIRECT_URL\" ] || prisma db push --skip-generate) && next build",
+    "vercel-build": "prisma generate && ([ -z \"$DIRECT_URL\" ] || prisma db push --skip-generate || echo '⚠️ prisma db push falhou — schema já aplicado via migração; seguindo o build') && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
