@@ -47,10 +47,17 @@ export async function POST(req: Request) {
           ...(body.autoAcceptPrescriptions !== undefined ? { autoAcceptPrescriptions: body.autoAcceptPrescriptions } : {}),
           ...(body.shareAdherence !== undefined ? { shareAdherence: body.shareAdherence } : {}),
         };
-        const conn = await upsertConnection(session.pharmacyId, partner, input);
+        const { connection, secretIssued } = await upsertConnection(session.pharmacyId, partner, input);
         // Immediately probe so the UI reflects a real status.
         const result = await testConnection(session.pharmacyId, partner);
-        return NextResponse.json({ ok: true, secret: conn.secret, status: result.ok ? "CONNECTED" : "ERROR", detail: result.detail });
+        return NextResponse.json({
+          ok: true,
+          // Only disclose the shared secret when it was newly minted (first
+          // connect / rotation) — never re-echo an existing persisted secret.
+          ...(secretIssued ? { secret: connection.secret } : {}),
+          status: result.ok ? "CONNECTED" : "ERROR",
+          detail: result.detail,
+        });
       }
       case "test": {
         const result = await testConnection(session.pharmacyId, partner);

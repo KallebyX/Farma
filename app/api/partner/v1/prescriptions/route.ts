@@ -72,20 +72,32 @@ export async function POST(req: Request) {
   if (!owner) return NextResponse.json({ ok: false, error: "Farmácia sem proprietário" }, { status: 409 });
 
   // 1) Match or create the patient by phone within this pharmacy.
+  //    Writing patient IDENTITY (name/CPF/birthDate) is gated behind
+  //    `patients:write` — a prescriptions-only key may link to an existing
+  //    patient but must not create one or overwrite their identity/PII (LGPD).
+  const canWritePatients = hasScope(auth, "patients:write");
   const existing = await prisma.patient.findUnique({
     where: { pharmacyId_phone: { pharmacyId, phone: d.patient.phone } },
     select: { id: true },
   });
+  if (!existing && !canWritePatients) {
+    return NextResponse.json(
+      { ok: false, error: "Paciente não encontrado — criar exige o escopo patients:write" },
+      { status: 403 },
+    );
+  }
   const patient = existing
-    ? await prisma.patient.update({
-        where: { id: existing.id },
-        data: {
-          name: d.patient.name,
-          cpf: d.patient.cpf ?? undefined,
-          birthDate: d.patient.birthDate ? new Date(d.patient.birthDate) : undefined,
-        },
-        select: { id: true },
-      })
+    ? canWritePatients
+      ? await prisma.patient.update({
+          where: { id: existing.id },
+          data: {
+            name: d.patient.name,
+            cpf: d.patient.cpf ?? undefined,
+            birthDate: d.patient.birthDate ? new Date(d.patient.birthDate) : undefined,
+          },
+          select: { id: true },
+        })
+      : existing // link only — do not overwrite identity without patients:write
     : await prisma.patient.create({
         data: {
           pharmacyId,

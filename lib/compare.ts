@@ -43,15 +43,24 @@ export async function searchNearby(term: string, lat?: number, lng?: number): Pr
   });
 
   // Rede São João first (flagship), then nearest (when located), then cheapest.
-  results.sort((a, b) => {
-    const ra = saoJoaoRank({ name: a.pharmacy.name, chainName: a.pharmacy.chainName });
-    const rb = saoJoaoRank({ name: b.pharmacy.name, chainName: b.pharmacy.chainName });
-    if (ra !== rb) return ra - rb;
-    const da = a.pharmacy.distanceKm, db = b.pharmacy.distanceKm;
+  // Rank from the RAW pharmacy fields (fantasia + razaoSocial + chainName) so a
+  // branch whose "São João" branding lives only in razaoSocial is still caught —
+  // the collapsed display `name` (fantasia ?? razaoSocial) would miss it.
+  const ranked = results.map((res, i) => ({
+    res,
+    rank: saoJoaoRank({
+      fantasia: rows[i].pharmacy.fantasia,
+      razaoSocial: rows[i].pharmacy.razaoSocial,
+      chainName: rows[i].pharmacy.chainName,
+    }),
+  }));
+  ranked.sort((a, b) => {
+    if (a.rank !== b.rank) return a.rank - b.rank;
+    const da = a.res.pharmacy.distanceKm, db = b.res.pharmacy.distanceKm;
     if (da != null && db != null && da !== db) return da - db;
     if (da != null && db == null) return -1;
     if (da == null && db != null) return 1;
-    return a.finalCents - b.finalCents;
+    return a.res.finalCents - b.res.finalCents;
   });
-  return results.slice(0, 30);
+  return ranked.map((x) => x.res).slice(0, 30);
 }

@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { EcosystemPartner, ConnectionStatus } from "@prisma/client";
 
@@ -77,18 +77,11 @@ export function isPartnerKey(v: string): v is PartnerKey {
 
 // ── Crypto helpers ──────────────────────────────────────────────────────────
 
+// We SIGN every event we send to partners (outbound HMAC). The reverse direction
+// — partners pushing to us — is authenticated by the partner API key
+// (lib/partner/auth) at /api/partner/v1/*, so there is no inbound HMAC path here.
 export function signPayload(secret: string, body: string): string {
   return createHmac("sha256", secret).update(body).digest("hex");
-}
-
-/** Constant-time check of an inbound `X-Farma-Signature: sha256=<hex>` header. */
-export function verifySignature(secret: string, body: string, header: string | null): boolean {
-  if (!header) return false;
-  const provided = header.replace(/^sha256=/, "").trim();
-  const expected = signPayload(secret, body);
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 export function newSecret(): string {
@@ -119,28 +112,44 @@ export type ConnectInput = {
   shareAdherence?: boolean;
 };
 
-/** Creates or updates a partner connection (does not test it). */
-export async function upsertConnection(pharmacyId: string, partner: PartnerKey, input: ConnectInput) {
+/**
+ * Creates or updates a partner connection (does not test it). Returns the row
+ * plus `secretIssued` — true only when a NEW shared secret was minted (first
+ * connect, or an explicit rotation). The caller uses this to decide whether to
+ * disclose the secret to the browser; an existing secret is never re-disclosed.
+ */
+export async function upsertConnection(
+  pharmacyId: string,
+  partner: PartnerKey,
+  input: ConnectInput,
+): Promise<{ connection: Awaited<ReturnType<typeof prisma.ecosystemConnection.upsert>>; secretIssued: boolean }> {
+  const existing = await getConnection(pharmacyId, partner);
   const baseUrl = normalizeBaseUrl(input.baseUrl);
+  // Mint a secret only on first creation or explicit rotation (caller sent one).
+  const rotating = typeof input.secret === "string" && input.secret.length > 0;
+  const secretIssued = !existing || rotating;
+  const secret = rotating ? input.secret! : existing?.secret ?? newSecret();
+
   const data = {
     baseUrl,
     scopes: input.scopes ?? PARTNERS[partner].defaultScopes,
-    ...(input.secret !== undefined ? { secret: input.secret || null } : {}),
+    ...(rotating ? { secret } : {}),
     ...(input.autoPushDispensations !== undefined ? { autoPushDispensations: input.autoPushDispensations } : {}),
     ...(input.autoAcceptPrescriptions !== undefined ? { autoAcceptPrescriptions: input.autoAcceptPrescriptions } : {}),
     ...(input.shareAdherence !== undefined ? { shareAdherence: input.shareAdherence } : {}),
   };
-  return prisma.ecosystemConnection.upsert({
+  const connection = await prisma.ecosystemConnection.upsert({
     where: { pharmacyId_partner: { pharmacyId, partner } },
     create: {
       pharmacyId,
       partner,
       status: ConnectionStatus.DISCONNECTED,
-      secret: input.secret || newSecret(),
+      secret,
       ...data,
     },
     update: data,
   });
+  return { connection, secretIssued };
 }
 
 export async function disconnect(pharmacyId: string, partner: PartnerKey) {
@@ -150,13 +159,19 @@ export async function disconnect(pharmacyId: string, partner: PartnerKey) {
   });
 }
 
-/** Normalizes a base URL: requires https, strips trailing slash. Returns null if blank. */
+/**
+ * Normalizes a base URL: requires https (strips trailing slash). A plaintext
+ * http:// loopback host is tolerated only OUTSIDE production, for local dev —
+ * in production every ecosystem endpoint must be https. Returns null if blank.
+ */
 function normalizeBaseUrl(raw: string | null | undefined): string | null {
   const v = (raw ?? "").trim();
   if (!v) return null;
   try {
     const u = new URL(v);
-    if (u.protocol !== "https:" && u.hostname !== "localhost") throw new Error("https obrigatório");
+    const isLoopback = u.hostname === "localhost" || u.hostname === "127.0.0.1";
+    const allowHttp = isLoopback && process.env.NODE_ENV !== "production";
+    if (u.protocol !== "https:" && !allowHttp) throw new Error("https obrigatório");
     return u.origin + (u.pathname === "/" ? "" : u.pathname.replace(/\/$/, ""));
   } catch {
     return null;
