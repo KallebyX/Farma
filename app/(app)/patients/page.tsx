@@ -4,6 +4,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { PageShell, PageHeader, Card, Button, Input, Select, EmptyState, Illus, PatientStatusBadge, Badge, Icon } from "@/components/ui";
 import { maskCpf } from "@/components/ui/utils";
+import { QuickAddPatient } from "./quick-add";
 
 export const dynamic = "force-dynamic";
 
@@ -62,11 +63,7 @@ export default async function PatientsPage({
           title="Pacientes"
           subtitle="Cadastro, lembretes de medicação e histórico de adesão."
         />
-        <Link href="/patients/new">
-          <Button icon={<Icon.Plus size={15}/>}>
-            Cadastrar paciente
-          </Button>
-        </Link>
+        <QuickAddPatient />
       </div>
 
       <form className="mt-6 flex gap-2">

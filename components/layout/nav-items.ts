@@ -10,21 +10,50 @@ export type NavItem = {
   alertKey?: keyof NavCounts;
 };
 
-/** Single source of truth for the app navigation (sidebar + mobile drawer). */
-export const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: "Home" },
-  { href: "/patients", label: "Pacientes", icon: "Users", countKey: "activePatients" },
-  { href: "/receitas", label: "Receitas", icon: "Pill" },
-  { href: "/ram", label: "RAM", icon: "Alert", countKey: "ramPending", alertKey: "ramSevere" },
-  { href: "/returns", label: "Retornos", icon: "Cart", countKey: "returnsAsked" },
-  { href: "/afiliados", label: "Laboratórios", icon: "TrendUp" },
-  { href: "/engajamento", label: "Gamificação", icon: "Heart" },
-  { href: "/catalog", label: "Catálogo", icon: "Book" },
-  { href: "/integracoes", label: "Integrações", icon: "Link" },
-  { href: "/relatorios", label: "Relatórios", icon: "TrendUp" },
-  { href: "/configuracoes", label: "Configurações", icon: "Settings" },
-  { href: "/settings/team", label: "Equipe", icon: "Users" },
+export type NavSection = { header?: string; items: NavItem[] };
+
+/**
+ * Grouped navigation, mirroring the Claude Design web sidebar (iPadOS Settings
+ * style): an ungrouped Início at the top, then Clínico / Crescimento / Gestão /
+ * Sistema sections. Single source of truth for the sidebar + mobile sheet.
+ */
+export const navSections: NavSection[] = [
+  { items: [{ href: "/dashboard", label: "Início", icon: "Home" }] },
+  {
+    header: "Clínico",
+    items: [
+      { href: "/patients", label: "Pacientes", icon: "Users", countKey: "activePatients" },
+      { href: "/receitas", label: "Receitas", icon: "Pill" },
+      { href: "/ram", label: "Farmacovigilância", icon: "Alert", countKey: "ramPending", alertKey: "ramSevere" },
+      { href: "/returns", label: "Retornos", icon: "Cart", countKey: "returnsAsked" },
+      { href: "/catalog", label: "Catálogo", icon: "Book" },
+    ],
+  },
+  {
+    header: "Crescimento",
+    items: [
+      { href: "/afiliados", label: "Laboratórios", icon: "TrendUp" },
+      { href: "/engajamento", label: "Gamificação", icon: "Heart" },
+    ],
+  },
+  {
+    header: "Gestão",
+    items: [
+      { href: "/relatorios", label: "Relatórios", icon: "TrendUp" },
+      { href: "/settings/team", label: "Equipe", icon: "Users" },
+    ],
+  },
+  {
+    header: "Sistema",
+    items: [
+      { href: "/integracoes", label: "Integrações", icon: "Link" },
+      { href: "/configuracoes", label: "Configurações", icon: "Settings" },
+    ],
+  },
 ];
+
+/** Flat list (mobile "Mais" sheet, breadcrumbs). */
+export const navItems: NavItem[] = navSections.flatMap((s) => s.items);
 
 export function isNavActive(pathname: string, href: string): boolean {
   return href === "/dashboard" ? pathname === "/dashboard" : pathname === href || pathname.startsWith(href + "/");

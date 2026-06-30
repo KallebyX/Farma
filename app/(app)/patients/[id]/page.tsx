@@ -6,6 +6,7 @@ import { summarizePosology } from "@/lib/prescriptions/posology";
 import { AddPrescription } from "./add-prescription";
 import { ConsentButton } from "./consent-button";
 import { CustomMedications } from "./custom-medications";
+import { PatientHubQr } from "./hub-qr";
 import { MessagesThread } from "@/components/messages/messages-thread";
 import {
   PageShell, Card, Badge, PatientStatusBadge, RxStatusBadge, Button, Icon,
@@ -88,6 +89,10 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
       </Card>
+
+      <div className="mt-6 max-w-md">
+        <PatientHubQr patientId={patient.id} phone={patient.phone} />
+      </div>
 
       <section className="mt-6">
         <div className="flex items-center justify-between mb-3">
