@@ -3,6 +3,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { listLeads, recentDispensations } from "@/lib/rx";
 import { PageShell, PageHeader } from "@/components/ui";
 import { DispensePanel } from "@/components/rx/dispense-panel";
+import { NovaReceita } from "@/components/rx/nova-receita";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +18,14 @@ export default async function ReceitasPage() {
 
   return (
     <PageShell>
-      <PageHeader
-        eyebrow="Dispensação"
-        title="Receitas digitais"
-        subtitle="Receitas enviadas pelos pacientes (qualificadas/ICP e comuns) e dispensações com rastreabilidade (lote, nota, CRM)."
-      />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          eyebrow="Dispensação"
+          title="Receitas digitais"
+          subtitle="Receitas enviadas pelos pacientes (qualificadas/ICP e comuns) e dispensações com rastreabilidade (lote, nota, CRM)."
+        />
+        <NovaReceita />
+      </div>
       <div className="mt-8">
         <DispensePanel
           leads={leads.map((l) => ({ ...l, createdAt: l.createdAt.toISOString() }))}
